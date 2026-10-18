@@ -36,6 +36,12 @@
 
 #define FAV_DIR "Favoriten"
 
+void patset_init(patset_t *ps) {
+    memset(ps, 0, sizeof *ps);
+    for (int i = 0; i < NPAT; i++) ps->p[i].len = 16;
+    ps->div = 16;
+}
+
 void kit_init_values(float pv[NV][NVP]) {
     for (int v = 0; v < NV; v++)
         for (int k = 0; k < NVP; k++) pv[v][k] = PDEF[VK(v, k)].def;
@@ -166,12 +172,11 @@ static const char *next_line(const char *t, char *line, size_t cap) {
 int parse_mtpreset(const char *t, kit_t *k) {
     char line[512];
     enum { S_TOP, S_DP, S_PAT } sec = S_TOP;
-    int depth = 0, sec_depth = 0, v = -1, nv = 0, choke_own = -1, in_a = 0, a_done = 0, pv_ = -1, rate_set[NV] = {0};
+    int depth = 0, sec_depth = 0, v = -1, nv = 0, choke_own = -1, pi = -1, pv_ = -1, rate_set[NV] = {0};
     int unit[NV] = {0};
+    patset_t *ps = &k->ps;
     kit_init_values(k->pv);
-    memset(&k->pat, 0, sizeof k->pat);
-    k->pat.len = 16;
-    k->pat.div = 16;
+    patset_init(ps);
     if (strncasecmp(t, "MicroTonicPreset", 16)) return 0;
     while (*t) {
         t = next_line(t, line, sizeof line);
@@ -182,16 +187,18 @@ int parse_mtpreset(const char *t, kit_t *k) {
         int kv = kv_split(kvbuf, &key, &val);
         if (sec == S_TOP && depth == 1) {
             if (kv && !strcmp(key, "Name")) name_copy(k->name, val, sizeof k->name);
-            else if (kv && !strcmp(key, "Tempo")) k->pat.tempo = (float)atof(val);
+            else if (kv && !strcmp(key, "Tempo")) ps->tempo = (float)atof(val);
+            else if (kv && !strcmp(key, "Swing")) ps->swing = clampf((float)atof(val), 0.0f, 100.0f);
+            else if (kv && !strcmp(key, "Pattern") && val[0] >= 'a' && val[0] < 'a' + NPAT) ps->cur = val[0] - 'a';
             else if (kv && !strcmp(key, "StepRate")) {
                 const char *sl = strchr(val, '/');
                 int d = sl ? atoi(sl + 1) : 16;
-                k->pat.div = d == 8 || d == 16 || d == 32 ? d : 16;
+                ps->div = d == 8 || d == 16 || d == 32 ? d : 16;
             } else if (!strncmp(s, "Mutes:", 6)) {
                 const char *c = strchr(s, '{');
                 for (int i = 0; c && i < NV; i++) {
                     c += strspn(c, "{ ,");
-                    if (!strncmp(c, "On", 2)) k->pat.mute |= (uint8_t)(1u << i);
+                    if (!strncmp(c, "On", 2)) ps->mute |= (uint8_t)(1u << i);
                     c += strcspn(c, ",}");
                 }
             } else if (!strncmp(s, "DrumPatches:", 12)) { sec = S_DP; sec_depth = depth; }
@@ -205,15 +212,18 @@ int parse_mtpreset(const char *t, kit_t *k) {
                 mt_set(k->pv[v], key, val, &choke_own, &unit[v]);
                 if (!strcmp(key, "ModRate")) rate_set[v] = 1;
             }
-        } else if (sec == S_PAT && !a_done) {
-            if (depth == sec_depth + 1 && s[0] == 'a' && s[1] == ':') in_a = 1;
-            else if (in_a && depth == sec_depth + 2 && kv && !strcmp(key, "Length")) {
+        } else if (sec == S_PAT) {   /* a: { Chained = true  Length = 16  1: { Accents = ..  Triggers = .. } .. } b: .. */
+            if (depth == sec_depth + 1 && s[0] >= 'a' && s[0] < 'a' + NPAT && s[1] == ':') pi = s[0] - 'a';
+            else if (pi >= 0 && depth == sec_depth + 2 && kv && !strcmp(key, "Length")) {
                 int l = atoi(val);
-                k->pat.len = l >= 1 && l <= 16 ? l : 16;
-            } else if (in_a && depth == sec_depth + 2 && *s >= '1' && *s <= '8' && s[1] == ':') pv_ = *s - '1';
-            else if (in_a && pv_ >= 0 && depth == sec_depth + 3) {
-                if (kv && !strcmp(key, "Triggers")) { k->pat.trig[pv_] = steps_bits(val, NULL); k->pat.has = 1; }
-                else if (kv && !strcmp(key, "Accents")) k->pat.acc[pv_] = steps_bits(val, NULL);
+                ps->p[pi].len = (uint8_t)(l >= 1 && l <= 16 ? l : 16);
+            } else if (pi >= 0 && depth == sec_depth + 2 && kv && !strcmp(key, "Chained")) ps->p[pi].chained = word_is(val, "true");
+            else if (pi >= 0 && depth == sec_depth + 2 && *s >= '1' && *s <= '8' && s[1] == ':') pv_ = *s - '1';
+            else if (pi >= 0 && pv_ >= 0 && depth == sec_depth + 3) {
+                if (kv && !strcmp(key, "Triggers")) {
+                    ps->p[pi].trig[pv_] = steps_bits(val, NULL);
+                    ps->has |= ps->p[pi].trig[pv_] != 0;
+                } else if (kv && !strcmp(key, "Accents")) ps->p[pi].acc[pv_] = steps_bits(val, NULL);
             }
         }
         for (char *c = s; *c; c++) {
@@ -221,8 +231,8 @@ int parse_mtpreset(const char *t, kit_t *k) {
             else if (*c == '}') {
                 depth--;
                 if (sec == S_DP && depth == sec_depth + 1) v = -1;
-                if (sec == S_PAT && in_a && depth == sec_depth + 2) pv_ = -1;
-                if (sec == S_PAT && in_a && depth == sec_depth + 1) { in_a = 0; a_done = 1; }
+                if (sec == S_PAT && pi >= 0 && depth == sec_depth + 2) pv_ = -1;
+                if (sec == S_PAT && depth == sec_depth + 1) pi = -1;
                 if (sec != S_TOP && depth == sec_depth) sec = S_TOP;
             }
         }
@@ -495,7 +505,7 @@ int kit_ensure(db_t *D, int n) {
     k->loaded = 1;
     if (!k->path || !load_file(k->path, k)) {   /* unreadable: it stays in the list, marked, and loads the Init values */
         kit_init_values(k->pv);
-        memset(&k->pat, 0, sizeof k->pat);
+        patset_init(&k->ps);
         char nm[32];
         snprintf(nm, sizeof nm, "%s", k->name);
         snprintf(k->name, sizeof k->name, "?? %.28s", nm);
@@ -546,7 +556,7 @@ static void steps_str(uint16_t b, int len, char *out) {
 }
 
 /* name, the eight voices (pv as the parameters hold them) and, when there is one, pattern A -> path (via path.new) */
-static int write_mtpreset(const char *path, const char *name, const float *pv, const pattern_t *pat) {
+static int write_mtpreset(const char *path, const char *name, const float *pv, const patset_t *ps) {
     char tmp[1100];
     snprintf(tmp, sizeof tmp, "%s.new", path);
     FILE *f = fopen(tmp, "w");
@@ -554,11 +564,11 @@ static int write_mtpreset(const char *path, const char *name, const float *pv, c
     static const char *const WAVE[3] = {"Sine", "Triangle", "Saw"}, *const MODE[3] = {"Decay", "Sine", "Noise"},
                              *const FIL[3] = {"LP", "BP", "HP"}, *const ENV[3] = {"Exp", "Linear", "Mod"};
     fprintf(f, "MicroTonicPresetV3: {\n\tName = \"%s\"\n", name);
-    if (pat && pat->has) {
-        fprintf(f, "\tPattern = a\n\tStepRate = 1/%d\n", pat->div);
-        if (pat->tempo > 0) fprintf(f, "\tTempo = %.6g\n", pat->tempo);
+    if (ps) {
+        fprintf(f, "\tPattern = %c\n\tStepRate = 1/%d\n\tSwing = %.6g\n", 'a' + (ps->cur % NPAT), ps->div, ps->swing);
+        if (ps->tempo > 0) fprintf(f, "\tTempo = %.6g\n", ps->tempo);
         fprintf(f, "\tMutes: {");
-        for (int v = 0; v < NV; v++) fprintf(f, "%s %s", v ? "," : "", pat->mute >> v & 1 ? "On" : "Off");
+        for (int v = 0; v < NV; v++) fprintf(f, "%s %s", v ? "," : "", ps->mute >> v & 1 ? "On" : "Off");
         fprintf(f, " }\n");
     }
     fprintf(f, "\tDrumPatches: {\n");
@@ -586,16 +596,21 @@ static int write_mtpreset(const char *path, const char *name, const float *pv, c
         fprintf(f, "\t\t\tOscWave = %s\n\t\t\tOutput = A\n\t\t\tPan = %.6g\n\t\t}\n", WAVE[(int)p[VP_OSC_WAVE] % 3], p[VP_PAN]);
     }
     fprintf(f, "\t}\n");
-    if (pat && pat->has) {
+    if (ps) {
         char a[17], t[17];
-        fprintf(f, "\tPatterns: {\n\t\ta: {\n\t\tLength = %d\n", pat->len);
-        for (int v = 0; v < NV; v++) {
-            steps_str(pat->acc[v], pat->len, a);
-            steps_str(pat->trig[v], pat->len, t);
-            fprintf(f, "\t\t\t%d: {\n\t\t\t\tAccents = %s\n\t\t\t\tFills = ----------------\n\t\t\t\tTriggers = %s\n\t\t\t}\n",
-                    v + 1, a, t);
+        fprintf(f, "\tPatterns: {\n");
+        for (int i = 0; i < NPAT; i++) {
+            const pattern_t *q = &ps->p[i];
+            fprintf(f, "\t\t%c: {\n\t\tChained = %s\n\t\tLength = %d\n", 'a' + i, q->chained ? "true" : "false", q->len);
+            for (int v = 0; v < NV; v++) {
+                steps_str(q->acc[v], 16, a);
+                steps_str(q->trig[v], 16, t);
+                fprintf(f, "\t\t\t%d: {\n\t\t\t\tAccents = %s\n\t\t\t\tFills = ----------------\n\t\t\t\tTriggers = %s\n\t\t\t}\n",
+                        v + 1, a, t);
+            }
+            fprintf(f, "\t\t}\n");
         }
-        fprintf(f, "\t\t}\n\t}\n");
+        fprintf(f, "\t}\n");
     }
     fprintf(f, "}\n");
     int bad = fflush(f) != 0;
@@ -614,7 +629,7 @@ static void base_name(const db_t *D, char *out, size_t n) {
     snprintf(out, n, "%s", nm);
 }
 
-/* SAVE: the voices as they are (and the loaded kit's pattern A, for the preview), as a Microtonic preset */
+/* SAVE: the voices and the patterns A-L as they are (edits included), as a Microtonic preset */
 int kit_save_user(db_t *D, int slot) {
     if (slot < 1 || slot > NUSER || !D->kits) return -1;
     char path[700], dir[600], name[32];
@@ -622,17 +637,15 @@ int kit_save_user(db_t *D, int slot) {
     if (mkdir(dir, 0755) && errno != EEXIST) return -1;
     user_path(D, slot, path, sizeof path);
     base_name(D, name, sizeof name);
-    int cur = (int)D->pv[P_KIT];
-    const pattern_t *pat = cur >= 0 && cur < D->nkits ? &D->kits[cur].pat : NULL;
-    pattern_t keep;
-    if (pat) keep = *pat;
-    if (write_mtpreset(path, name, &D->pv[VK(0, 0)], pat ? &keep : NULL)) return -1;
+    patset_t keep = D->wp;
+    keep.swing = D->pv[P_SWING];
+    if (write_mtpreset(path, name, &D->pv[VK(0, 0)], &keep)) return -1;
     kit_t *k = &D->kits[D->user0 + slot - 1];
     free(k->path);
     memset(k, 0, sizeof *k);
     for (int v = 0; v < NV; v++)
         for (int j = 0; j < NVP; j++) k->pv[v][j] = D->pv[VK(v, j)];
-    if (pat) k->pat = keep;
+    k->ps = keep;
     k->user = slot;
     k->used = k->loaded = 1;
     snprintf(k->name, sizeof k->name, "U%02d %.26s", slot, name);
@@ -679,11 +692,11 @@ int kit_favorite(db_t *D) {
             free(t);
         }
     } else {
-        pattern_t pat = k->pat;
+        patset_t ps = k->ps;
         float pv[NV * NVP];
         for (int v = 0; v < NV; v++)
             for (int j = 0; j < NVP; j++) pv[VSTRIDE * v + j] = k->pv[v][j];
-        bad = write_mtpreset(path, name, pv, &pat) != 0;
+        bad = write_mtpreset(path, name, pv, &ps) != 0;
     }
     if (bad) { snprintf(D->info, sizeof D->info, "CAN'T WRITE TO THE CARD"); return -1; }
     if (D->nkits < MAX_KITS) {

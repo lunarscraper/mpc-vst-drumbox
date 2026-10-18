@@ -50,13 +50,23 @@ float i_q(float q);
 float i_db(float db);
 float i_eqgain(float db);
 
-/* a preset's pattern A (Microtonic: 1..16 steps per voice, triggers and accents), for the preview only */
+#define NPAT 12           /* patterns A-L, as in Microtonic */
+
+/* one pattern: 1..16 steps per voice, triggers and accents, and whether it chains on to the next (Microtonic) */
 typedef struct {
-    int has, len, div;     /* div: StepRate's 1/<div> (16 = sixteenths) */
-    float tempo;           /* the preset's own, BPM (0: none) */
     uint16_t trig[NV], acc[NV];
-    uint8_t mute;          /* bit v: voice v muted in the preset */
+    uint8_t len, chained;
 } pattern_t;
+
+/* a kit's patterns A-L, as a preset has them */
+typedef struct {
+    pattern_t p[NPAT];
+    int has;               /* any step set in any pattern */
+    int cur;               /* the preset's selected pattern ("Pattern = a") */
+    int div;               /* StepRate's 1/<div> (16 = sixteenths, also 8, 32) */
+    float tempo, swing;    /* the preset's own (tempo BPM, 0: none; swing %) */
+    uint8_t mute;          /* bit v: voice v muted */
+} patset_t;
 
 typedef struct {
     char name[32];
@@ -65,7 +75,7 @@ typedef struct {
     int loaded;            /* a file's kit is read when it is first picked (kit_ensure) */
     char *path;            /* the file it comes from (NULL: built in) */
     float pv[NV][NVP];     /* knob 0..100 or option index, as the parameters hold them */
-    pattern_t pat;
+    patset_t ps;
 } kit_t;
 
 /* an exponential / linear breakpoint envelope (SuperCollider Env: levels, times, curve) */
@@ -119,12 +129,20 @@ typedef struct {
     int ndrums, dcur;              /* dcur: the one in dpv (-1: none) */
     float dpv[NVP];
     int aud_drum;                  /* play the audition voice at the next block */
-    /* the preview: a preset's pattern A, twice, at the host's tempo */
+    /* the patterns being played and edited (the kit's, copied when it loads; edits stay here and in the project) */
+    patset_t wp;
+    /* the preview (the Force stopped): the selected pattern, twice, at the host's tempo */
     int seq_on, seq_step, seq_total, seq_left, seq_frames, seq_start;
     pattern_t seq;
+    /* the sequencer (SEQ ON, the Force playing): follows the song position */
+    int sq_pat, sq_queued, sq_resync;         /* pattern playing; one picked to follow at the end of it (-1 none) */
+    long sq_base, sq_last;         /* absolute step where sq_pat started; the last step fired */
+    int sq_step;                   /* step of sq_pat playing (the lit column), -1 none */
     int tp_seen, tp_playing;
-    double tp_bpm;
-    int changed, changed_k;        /* what the pads changed, for the screen (mpc_engine_changed): 1 KIT, 2 SOUND, 4 TAKE */
+    double tp_bpm, tp_ppq;
+    long tp_frames;                /* frames rendered since the host last told the position */
+    int changed, changed_k, changed_n;   /* what changed by itself, for the screen (mpc_engine_changed): 1 KIT, 2 SOUND,
+                                          * 4 TAKE, 8 PATTERN, 16 the notes */
     biquad_t lpf; bq_state_t lpfs[2];
     float lpf_cut, lpf_res;        /* the coefficients' settings */
     uint32_t seed;
@@ -144,6 +162,7 @@ int kit_save_user(db_t *D, int slot);        /* the voices as they are -> USER/N
 int kit_favorite(db_t *D);                   /* the loaded kit -> Favoriten/; 0 = ok (D->info says what happened) */
 int drum_ensure(db_t *D, int n);             /* read .mtdrum n into dpv; 1 = ok */
 void kit_init_values(float pv[NV][NVP]);
+void patset_init(patset_t *ps);
 int parse_mtpreset(const char *text, kit_t *k);
 int parse_mtdrum(const char *text, float *p, char *name, int nlen);
 int parse_tkit(const char *text, kit_t *k);

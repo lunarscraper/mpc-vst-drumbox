@@ -1,9 +1,11 @@
-/* Drumbox engine: parameters, MIDI, kits, user slots and the master section (VOLUME, low-pass).
+/* Drumbox engine: parameters, MIDI, kits, user slots, the master section (VOLUME, low-pass) and the sequencer.
  *
- * MIDI: notes BASE NOTE .. BASE NOTE + 7 (36-43, C1-G1, to start with: a Force's drum pads; or C0, G#1 = pads 9-16,
- * C2, C3) play voices 1-8, on any
- * channel; velocity reaches each voice through its OSC / NOISE / MOD VEL amounts. A voice is one-shot: note-offs do
- * nothing. A new hit fades the voice's (or its choke group's) last one out in 50 ms. CC 120 / 123 stop everything. */
+ * MIDI: each voice plays on its own note (NOTES page; to start with 36-43, C1-G1, a Force's drum pads; V1 NOTE on
+ * MASTER sets all eight in a row), on any channel; velocity reaches each voice through its OSC / NOISE / MOD VEL
+ * amounts. A voice is one-shot: note-offs do nothing. A new hit fades the voice's (or its choke group's) last one out
+ * in 50 ms. CC 120 / 123 stop everything. The sequencer (SEQ ON) plays the patterns A-L with the Force's song
+ * position; with SEQ OFF the Force's own sequencer plays the voices through their notes. */
+#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,18 +74,29 @@ static inline void ftz_off(fpstate_t old) {
 
 /* ---- kits ------------------------------------------------------------------------------------------------------ */
 
-static void seq_begin(db_t *D, const pattern_t *p);
+static void preview_begin(db_t *D);
 
+/* A kit, as HOLD says: OFF its sounds and its patterns A-L, KIT only its patterns (the sounds stay), PATTERN only its
+ * sounds (the patterns stay, so the groove runs on with another kit). */
 static void load_kit(db_t *D, int n) {
     if (n < 0 || n >= D->nkits) return;
     kit_ensure(D, n);   /* normally done already where KIT was set (e_set_param): the file isn't read here */
     const kit_t *k = &D->kits[n];
-    for (int v = 0; v < NV; v++)
-        for (int j = 0; j < NVP; j++) D->pv[VK(v, j)] = k->pv[v][j];
+    int hold = (int)D->pv[P_HOLD];
+    if (hold != 1)
+        for (int v = 0; v < NV; v++)
+            for (int j = 0; j < NVP; j++) D->pv[VK(v, j)] = k->pv[v][j];
+    if (hold != 2) {
+        D->wp = k->ps;
+        D->pv[P_PATTERN] = (float)(k->ps.cur % NPAT);
+        D->pv[P_PAT_LEN] = (float)k->ps.p[k->ps.cur % NPAT].len;
+        D->pv[P_SWING] = k->ps.swing;
+        D->sq_queued = (int)D->pv[P_PATTERN];   /* the sequencer takes it at the end of the pattern playing */
+    }
     D->pv[P_KIT] = (float)n;
     if (k->user) D->pv[P_SLOT] = (float)k->user;
-    /* PREVIEW: the kit's pattern A plays (twice), unless the Force is playing */
-    if ((int)D->pv[P_PREVIEW] && !(D->tp_seen && D->tp_playing)) seq_begin(D, &k->pat);
+    /* PREVIEW: the selected pattern plays (twice), unless the Force is playing */
+    if ((int)D->pv[P_PREVIEW] && !(D->tp_seen && D->tp_playing)) preview_begin(D);
     else D->seq_on = 0;
 }
 
@@ -108,21 +121,30 @@ static void hit(db_t *D, int v, float vel) {   /* a voice, and its choke group *
     voice_trigger(D, v, vel);
 }
 
-/* PAD BROWSE: pads 9-15 (BASE NOTE + 8 .. + 14) while the Force is stopped. A kit picked here is read on the audio
+static int sel_pattern(const db_t *D) { return (int)D->pv[P_PATTERN] % NPAT; }
+#define VNOTE(v) (P_V1_NOTE + 3 * (v))   /* v<n>_note, then its - and + */
+
+/* PATTERN picked: at once while the sequencer is not playing, else at the end of the pattern playing */
+static void pick_pattern(db_t *D, int i) {
+    i = ((i % NPAT) + NPAT) % NPAT;
+    D->pv[P_PATTERN] = (float)i;
+    D->pv[P_PAT_LEN] = (float)D->wp.p[i].len;
+    D->sq_queued = i;
+}
+
+/* PAD BROWSE: pads 9-16 (BASE NOTE + 8 .. + 15): kit -/+, FAVORIT, PLAY, sound -/+, TAKE, next pattern. A kit picked here is read on the audio
  * thread (a few ms, only while nothing plays); the screen follows through mpc_engine_changed. */
 static void pad_browse(db_t *D, int k) {
-    int cur = (int)D->pv[P_KIT];
     if (k == 0 || k == 1) {
-        int n = cur + (k ? 1 : -1);
+        int n = (int)D->pv[P_KIT] + (k ? 1 : -1);
         if (n < 0 || n >= D->nkits) return;
         kit_ensure(D, n);
         D->info[0] = 0;
         load_kit(D, n);
         D->changed |= 1;
     } else if (k == 2) kit_favorite(D);
-    else if (k == 3) {
-        if (cur >= 0 && cur < D->nkits) seq_begin(D, &D->kits[cur].pat);
-    } else if (k == 4 || k == 5) {
+    else if (k == 3) preview_begin(D);
+    else if (k == 4 || k == 5) {
         int n = (int)D->pv[P_DRUM] + (k == 5 ? 1 : -1);
         if (n < 0 || n >= D->ndrums) return;
         D->pv[P_DRUM] = (float)n;
@@ -135,57 +157,107 @@ static void pad_browse(db_t *D, int k) {
             if (j != VP_CHOKE) D->pv[VK(v, j)] = D->dpv[j];
         snprintf(D->info, sizeof D->info, "V%d: %.36s", v + 1, D->dname && D->dname[D->dcur] ? D->dname[D->dcur] : "");
         D->changed |= 4;
+        D->changed_k = 0;
+    } else if (k == 7) {   /* the next pattern (A-L), heard at once */
+        pick_pattern(D, sel_pattern(D) + 1);
+        if (!(D->tp_seen && D->tp_playing)) preview_begin(D);
+        D->changed |= 8;
     }
 }
 
+/* A note plays every voice whose NOTE it is (NOTES page; V1 NOTE on MASTER sets all eight in a row). With PAD BROWSE
+ * on, a note no voice has, BASE NOTE + 8 .. + 15 (pads 9-16), browses while the Force is stopped; pad 16 (the next
+ * pattern, taken at the end of the one playing) works while it plays too. */
 static void e_midi(void *inst, const uint8_t *m, int len) {
     db_t *D = inst;
     apply_kit(D);
     if (len < 2) return;
     int st = m[0] & 0xF0, d1 = m[1] & 0x7F, d2 = len > 2 ? m[2] & 0x7F : 0;
     if (st == 0x90 && d2 > 0) {
-        int v = d1 - BASE_NOTE[(int)D->pv[P_BASE_NOTE] % 5];
-        if (v >= NV && v < NV + 7 && (int)D->pv[P_PAD_BROWSE] && !(D->tp_seen && D->tp_playing)) {
-            pad_browse(D, v - NV);
-            return;
-        }
-        if (v < 0 || v >= NV) return;
-        D->seq_on = 0;   /* playing the pads ends a preview */
-        hit(D, v, (float)d2);
+        int played = 0;
+        for (int v = 0; v < NV; v++)
+            if ((int)D->pv[VNOTE(v)] == d1) {
+                if (!played) D->seq_on = 0;   /* playing the pads ends a preview */
+                hit(D, v, (float)d2);
+                played = 1;
+            }
+        int b = d1 - BASE_NOTE[(int)D->pv[P_BASE_NOTE] % 5];
+        int run = D->tp_seen && D->tp_playing;   /* while the Force plays only pad 16 (the next pattern, at the bar) */
+        if (!played && b >= NV && b < NV + 8 && (int)D->pv[P_PAD_BROWSE] && (!run || b == NV + 7)) pad_browse(D, b - NV);
     } else if (st == 0xB0 && (d1 == 120 || d1 == 123)) {
         D->seq_on = 0;
         voice_kill(D);
     }
 }
 
-/* ---- the preview: pattern A, twice, at the Force's tempo (the preset's own without one) ------------------------- *
- * Accented steps play at velocity 127, the others at 96; the preset's mutes are kept. A kit without a pattern (a
- * .tkit, a built-in nb_tonic kit) plays its eight voices one after another, an eighth note apart. Only to hear a kit
- * while browsing: it never runs while the Force plays, and a pad, a new kit or PLAY on the Force stops it. */
-static void seq_begin(db_t *D, const pattern_t *p) {
-    pattern_t q = *p;
-    if (!q.has) {
+/* ---- the preview: the selected pattern, twice, at the Force's tempo (the preset's own without one) -------------- *
+ * Accented steps play at velocity 127, the others at 96; the mutes are kept. Patterns that are all empty (a .tkit, a
+ * built-in nb_tonic kit) play the eight voices one after another, an eighth note apart. Only to hear a kit while
+ * browsing: it never runs while the Force plays, and a pad, a new kit or PLAY on the Force stops it. */
+static void preview_begin(db_t *D) {
+    pattern_t q = D->wp.p[sel_pattern(D)];
+    int div = D->wp.div > 0 ? D->wp.div : 16, empty = 1;
+    for (int v = 0; v < NV; v++) empty &= !q.trig[v];
+    if (empty) {
         memset(&q, 0, sizeof q);
-        q.has = 1;
         q.len = 16;
-        q.div = 16;
+        div = 16;
         for (int v = 0; v < NV; v++) q.trig[v] = (uint16_t)(1u << (2 * v));
         D->seq_total = 16;
-    } else D->seq_total = 2 * q.len;
-    double bpm = D->tp_bpm > 20.0 ? D->tp_bpm : q.tempo > 20.0f ? q.tempo : 120.0;
-    D->seq_frames = (int)(SR * 60.0 / bpm * 4.0 / (q.div > 0 ? q.div : 16) + 0.5);
+    } else D->seq_total = 2 * (q.len ? q.len : 16);
+    double bpm = D->tp_bpm > 20.0 ? D->tp_bpm : D->wp.tempo > 20.0f ? D->wp.tempo : 120.0;
+    D->seq_frames = (int)(SR * 60.0 / bpm * 4.0 / div + 0.5);
     D->seq = q;
     D->seq_step = 0;
     D->seq_left = 0;
     D->seq_on = 1;
 }
 
-static void seq_fire(db_t *D) {
+static void preview_fire(db_t *D) {
     int s = D->seq_step % (D->seq.len > 0 ? D->seq.len : 16);
     for (int v = 0; v < NV; v++)
-        if (!(D->seq.mute >> v & 1) && (D->seq.trig[v] >> s & 1)) hit(D, v, (D->seq.acc[v] >> s & 1) ? 127.0f : 96.0f);
-    if (++D->seq_step >= D->seq_total) D->seq_on = 0;
+        if (!(D->wp.mute >> v & 1) && (D->seq.trig[v] >> s & 1)) hit(D, v, (D->seq.acc[v] >> s & 1) ? 127.0f : 96.0f);
+    D->sq_step = s;
+    if (++D->seq_step >= D->seq_total) { D->seq_on = 0; D->sq_step = -1; }
     D->seq_left = D->seq_frames;
+}
+
+/* ---- the sequencer: SEQ ON, while the Force plays --------------------------------------------------------------- *
+ * It follows the song position the Force reports (mpc_engine_transport), so it starts, stops, loops and jumps with
+ * it and every step lands on its sample. Steps are counted from the song's start in StepRate units (sixteenths, also
+ * eighths or 32nds as the preset says); SWING delays every second step by up to half a step. A pattern runs its
+ * LENGTH (1-16 steps) and then goes on to: a pattern picked meanwhile; with CHAIN ON the next one if this one is
+ * chained (Microtonic's Chained, back to the first of its chain after the last); else itself. Accents play at
+ * velocity 127, other steps at 96; muted voices (the grid's left column) don't play. */
+
+static int chain_next(const db_t *D, int p) {
+    if ((int)D->pv[P_CHAIN] && D->wp.p[p].chained && p + 1 < NPAT) return p + 1;
+    if ((int)D->pv[P_CHAIN])   /* the end of a chain: back to its first pattern */
+        while (p > 0 && D->wp.p[p - 1].chained) p--;
+    return p;
+}
+
+static void sq_fire(db_t *D, long k) {
+    int len = D->wp.p[D->sq_pat].len ? D->wp.p[D->sq_pat].len : 16;
+    if (k < D->sq_base || k - D->sq_base > 4L * 16 || k != D->sq_last + 1) {   /* a start, a loop, a jump: line up again */
+        D->sq_pat = D->sq_queued >= 0 ? D->sq_queued : sel_pattern(D);
+        D->sq_queued = -1;
+        len = D->wp.p[D->sq_pat].len ? D->wp.p[D->sq_pat].len : 16;
+        D->sq_base = k - ((k % len) + len) % len;
+    }
+    while (k - D->sq_base >= len) {   /* the pattern's end: the next one */
+        D->sq_base += len;
+        D->sq_pat = D->sq_queued >= 0 ? D->sq_queued : chain_next(D, D->sq_pat);
+        D->sq_queued = -1;
+        if (D->sq_pat != sel_pattern(D)) { D->pv[P_PATTERN] = (float)D->sq_pat; D->pv[P_PAT_LEN] = (float)D->wp.p[D->sq_pat].len; D->changed |= 8; }
+        len = D->wp.p[D->sq_pat].len ? D->wp.p[D->sq_pat].len : 16;
+    }
+    D->sq_last = k;
+    int s = (int)(k - D->sq_base);
+    const pattern_t *q = &D->wp.p[D->sq_pat];
+    for (int v = 0; v < NV; v++)
+        if (!(D->wp.mute >> v & 1) && (q->trig[v] >> s & 1)) hit(D, v, (q->acc[v] >> s & 1) ? 127.0f : 96.0f);
+    D->sq_step = s;
 }
 
 /* ---- render ---------------------------------------------------------------------------------------------------- */
@@ -213,19 +285,48 @@ static void e_render(void *inst, int16_t *out, int frames) {
         D->lpf_cut = cut;
         D->lpf_res = res;
     }
-    if (D->seq_start) {   /* PLAY (PREVIEW): the loaded kit's pattern from the start */
+    if (D->seq_start) {   /* PLAY (PREVIEW): the selected pattern from the start */
         D->seq_start = 0;
-        int k = (int)D->pv[P_KIT];
-        if (k >= 0 && k < D->nkits) seq_begin(D, &D->kits[k].pat);
+        preview_begin(D);
     }
+    /* the sequencer: where this block lies in the song, in steps (swing: an odd step's time moves later) */
+    int sq = (int)D->pv[P_SEQ] && D->tp_seen && D->tp_playing && D->tp_bpm > 20.0 && D->tp_ppq >= 0.0;
+    double spq = (D->wp.div > 0 ? D->wp.div : 16) / 4.0, u0 = 0, du = 0, sw = 0.5 * D->pv[P_SWING] / 100.0;
+    if (sq) {
+        u0 = (D->tp_ppq + D->tp_frames * D->tp_bpm / 60.0 / SR) * spq;   /* steps at this block's first sample */
+        du = D->tp_bpm / 60.0 / SR * spq;                                /* steps per sample */
+        D->seq_on = 0;
+    } else if (!(D->tp_seen && D->tp_playing) && D->sq_step >= 0 && !D->seq_on) D->sq_step = -1;
+    /* the step to go on from: the last one fired; after a start or a jump, the ones from this block's first sample on
+     * (a step that fell between two samples belongs to the later one) */
+    long nk = 0;
+    if (sq) {
+        long from = (long)ceil(u0 - du - 1e-9) - 1;
+        nk = D->sq_resync || D->sq_last < from - 4 ? from : D->sq_last;
+        D->sq_resync = 0;
+    }   /* the first step whose time may lie in this block */
     if (D->aud_drum) {   /* SOUNDS: the picked .mtdrum on its own voice */
         D->aud_drum = 0;
         if (D->dcur >= 0) voice_trigger(D, AUD, 110.0f);
     }
     for (int off = 0; off < frames;) {
-        if (D->seq_on && D->seq_left <= 0) seq_fire(D);
+        if (D->seq_on && D->seq_left <= 0) preview_fire(D);
         int n = frames - off < BLK ? frames - off : BLK;
         if (D->seq_on && D->seq_left < n) n = D->seq_left;
+        if (sq) {   /* the steps due by now fire; the block ends at the next one */
+            double at = u0 + off * du;
+            for (;;) {
+                long k = nk + 1;
+                double t = k + ((k & 1) ? sw : 0.0);
+                if (t > at + 1e-9) {
+                    int f = (int)ceil((t - at) / du - 1e-9);
+                    if (f < n) n = f > 0 ? f : 1;
+                    break;
+                }
+                if (k > D->sq_last) sq_fire(D, k);
+                nk = k;
+            }
+        }
         float L[BLK] = {0}, R[BLK] = {0};
         for (int v = 0; v <= NV; v++) voice_render(D, v, L, R, n);
         for (int i = 0; i < n; i++) {
@@ -240,7 +341,55 @@ static void e_render(void *inst, int16_t *out, int frames) {
         if (D->seq_on) D->seq_left -= n;
         off += n;
     }
+    D->tp_frames += frames;
     ftz_off(fp);
+}
+
+/* ---- parameters ------------------------------------------------------------------------------------------------ */
+
+/* ---- the grid: st_N (voice row, step column), mute_N, ph_N; asked for every 10 ms, so they skip the key search -- */
+
+static int tile_key(const char *key, int *kind, int *n) {   /* "st_12" / "st_12_on": kind 0, 1, 2 = st, mute, ph */
+    const char *c;
+    if (key[0] == 's' && key[1] == 't' && key[2] == '_') { *kind = 0; c = key + 3; }
+    else if (!strncmp(key, "mute_", 5)) { *kind = 1; c = key + 5; }
+    else if (key[0] == 'p' && key[1] == 'h' && key[2] == '_') { *kind = 2; c = key + 3; }
+    else return -1;
+    if (*c < '1' || *c > '9') return -1;
+    char *e;
+    long v = strtol(c, &e, 10);
+    int lim = *kind == 0 ? NV * 16 : *kind == 1 ? NV : 16;
+    if (v < 1 || v > lim) return -1;
+    *n = (int)v - 1;
+    if (!*e) return 0;
+    return strcmp(e, "_on") ? -1 : 1;
+}
+
+static int tile_get(const db_t *D, int kind, int n, int on, char *buf, int len) {
+    const pattern_t *q = &D->wp.p[sel_pattern(D)];
+    if (kind == 0) {
+        int v = n / 16, s = n % 16, t = q->trig[v] >> s & 1, a = q->acc[v] >> s & 1;
+        if (on) return snprintf(buf, len, "%d", t);
+        int L = q->len ? q->len : 16;
+        return snprintf(buf, len, "%s", s >= L ? "-" : t && a ? "A" : "");   /* past LENGTH: "-" */
+    }
+    if (kind == 1) return on ? snprintf(buf, len, "%d", !(D->wp.mute >> n & 1)) : snprintf(buf, len, "V%d", n + 1);
+    if (on) {   /* the step playing: the sequencer's, or the preview's */
+        int playing = ((int)D->pv[P_SEQ] && D->tp_seen && D->tp_playing) || D->seq_on;
+        return snprintf(buf, len, "%d", playing && D->sq_step == n && (!(int)D->pv[P_SEQ] || D->sq_pat == sel_pattern(D) || D->seq_on));
+    }
+    return snprintf(buf, len, "%s", n % 4 ? "" : n == 0 ? "1" : n == 4 ? "5" : n == 8 ? "9" : "13");
+}
+
+static void tile_tap(db_t *D, int kind, int n) {
+    if (kind == 0) {   /* off -> on -> accent -> off */
+        pattern_t *q = &D->wp.p[sel_pattern(D)];
+        int v = n / 16;
+        uint16_t b = (uint16_t)(1u << (n % 16));
+        if (!(q->trig[v] & b)) { q->trig[v] |= b; q->acc[v] &= (uint16_t)~b; }
+        else if (!(q->acc[v] & b)) q->acc[v] |= b;
+        else { q->trig[v] &= (uint16_t)~b; q->acc[v] &= (uint16_t)~b; }
+    } else if (kind == 1) D->wp.mute ^= (uint8_t)(1u << n);
 }
 
 /* ---- parameters ------------------------------------------------------------------------------------------------ */
@@ -255,9 +404,46 @@ static void set_value(db_t *D, int i, const char *val) {
     }
 }
 
+/* the patterns in the state: per pattern LL C then 8 x TTTT, 8 x AAAA (hex), then mutes, step rate, tempo */
+static int pats_put(const patset_t *ps, char *b, int len) {
+    int o = snprintf(b, len, "pats=");
+    for (int i = 0; i < NPAT && o < len; i++) {
+        o += snprintf(b + o, len - o, "%02x%x", ps->p[i].len, ps->p[i].chained ? 1 : 0);
+        for (int v = 0; v < NV && o < len; v++) o += snprintf(b + o, len - o, "%04x", ps->p[i].trig[v]);
+        for (int v = 0; v < NV && o < len; v++) o += snprintf(b + o, len - o, "%04x", ps->p[i].acc[v]);
+    }
+    if (o < len) o += snprintf(b + o, len - o, ";pmute=%d;pdiv=%d;ptempo=%.2f;", ps->mute, ps->div, ps->tempo);
+    return o;
+}
+
+static unsigned hexn(const char *c, int n) {
+    unsigned x = 0;
+    for (int i = 0; i < n; i++) {
+        int d = c[i] >= '0' && c[i] <= '9' ? c[i] - '0' : c[i] >= 'a' && c[i] <= 'f' ? c[i] - 'a' + 10 : 0;
+        x = x << 4 | (unsigned)d;
+    }
+    return x;
+}
+
+static void pats_get(patset_t *ps, const char *c) {
+    const int per = 3 + 2 * NV * 4;
+    if ((int)strlen(c) < NPAT * per) return;
+    for (int i = 0; i < NPAT; i++, c += per) {
+        pattern_t *q = &ps->p[i];
+        int l = (int)hexn(c, 2);
+        q->len = (uint8_t)(l >= 1 && l <= 16 ? l : 16);
+        q->chained = c[2] == '1';
+        for (int v = 0; v < NV; v++) {
+            q->trig[v] = (uint16_t)hexn(c + 3 + 4 * v, 4);
+            q->acc[v] = (uint16_t)hexn(c + 3 + 4 * (NV + v), 4);
+        }
+    }
+    ps->has = 1;
+}
+
 static void set_state(db_t *D, const char *s) {
-    char kv[256], kitname[40] = "";
-    int kit = -1;
+    char kv[1024], kitname[40] = "";
+    int kit = -1, notes = 0;
     while (*s) {
         size_t n = strcspn(s, ";");
         if (n && n < sizeof kv) {
@@ -268,13 +454,24 @@ static void set_state(db_t *D, const char *s) {
                 *eq++ = 0;
                 int i = find_key(kv);
                 if (!strcmp(kv, "kitname")) snprintf(kitname, sizeof kitname, "%s", eq);
+                else if (!strcmp(kv, "pats")) pats_get(&D->wp, eq);
+                else if (!strcmp(kv, "pmute")) D->wp.mute = (uint8_t)atoi(eq);
+                else if (!strcmp(kv, "pdiv")) { int d = atoi(eq); D->wp.div = d == 8 || d == 32 ? d : 16; }
+                else if (!strcmp(kv, "ptempo")) D->wp.tempo = (float)atof(eq);
                 else if (i == P_KIT) kit = atoi(eq);
-                else if (i >= 0) set_value(D, i, eq);
+                else if (i >= 0) {
+                    set_value(D, i, eq);
+                    notes |= i == P_V1_NOTE;
+                }
             }
         }
         s += n;
         if (*s) s++;
     }
+    if (!notes)   /* a state from before 0.3.0: the notes follow BASE NOTE, as they did */
+        for (int v = 0; v < NV; v++) D->pv[VNOTE(v)] = (float)(BASE_NOTE[(int)D->pv[P_BASE_NOTE] % 5] + v);
+    D->pv[P_PAT_LEN] = (float)D->wp.p[sel_pattern(D)].len;
+    D->sq_queued = sel_pattern(D);
     /* the kit's number, or where that name is now (files added or removed since) */
     if (kit >= 0 && kit < D->nkits && (!kitname[0] || !strcmp(D->kits[kit].name, kitname))) D->pv[P_KIT] = (float)kit;
     else if (kitname[0]) {
@@ -289,6 +486,7 @@ static int get_state(const db_t *D, char *buf, int len) {
     for (int i = 0; i < NP && o < len; i++)
         if (PDEF[i].kind == 0) o += snprintf(buf + o, len - o, "%s=%.4f;", PDEF[i].key, D->pv[i]);
         else if (PDEF[i].kind == 1 || i == P_SLOT) o += snprintf(buf + o, len - o, "%s=%d;", PDEF[i].key, (int)D->pv[i]);
+    if (o < len) o += pats_put(&D->wp, buf + o, len - o);
     return o < len ? o : -1;
 }
 
@@ -297,6 +495,12 @@ static void e_set_param(void *inst, const char *key, const char *val) {
     if (!strcmp(key, "state")) {
         D->kit_pending = -1;   /* a restore says which kit it is, and every knob */
         set_state(D, val);
+        return;
+    }
+    int tk, tn, t = tile_key(key, &tk, &tn);
+    if (t == 0) {   /* a tap on the grid */
+        apply_kit(D);
+        tile_tap(D, tk, tn);
         return;
     }
     int i = find_key(key);
@@ -345,7 +549,20 @@ static void e_set_param(void *inst, const char *key, const char *val) {
         }
         return;
     }
+    if (i == P_PATTERN) {
+        int n = atoi(val);
+        pick_pattern(D, n < 0 ? 0 : n >= NPAT ? NPAT - 1 : n);
+        if (!(D->tp_seen && D->tp_playing) && (int)D->pv[P_PREVIEW]) D->seq_start = 1;   /* heard at once */
+        return;
+    }
     set_value(D, i, val);
+    if (i == P_PAT_LEN) D->wp.p[sel_pattern(D)].len = (uint8_t)D->pv[P_PAT_LEN];
+    if (i == P_BASE_NOTE) {   /* V1 NOTE on MASTER: all eight voices in a row from there */
+        for (int v = 0; v < NV; v++) D->pv[VNOTE(v)] = (float)(BASE_NOTE[(int)D->pv[P_BASE_NOTE] % 5] + v);
+        D->changed |= 16;
+        D->changed_n = 0;
+    }
+    if (i == P_SEQ && !(int)D->pv[P_SEQ]) D->sq_step = -1;
     if (i == P_SLOT) D->status[0] = 0;
     if (i == P_PREVIEW && !(int)D->pv[P_PREVIEW]) D->seq_on = 0;
 }
@@ -386,6 +603,8 @@ static int voice_display(const db_t *D, int v, int k, char *buf, int len) {
 
 static int e_get_param(void *inst, const char *key, char *buf, int len) {
     db_t *D = inst;
+    int tk, tn, t = tile_key(key, &tk, &tn);
+    if (t >= 0) return tile_get(D, tk, tn, t, buf, len);
     if (!strcmp(key, "state")) {
         apply_kit(D);
         return get_state(D, buf, len);
@@ -422,6 +641,7 @@ static int e_get_param(void *inst, const char *key, char *buf, int len) {
     i = find_key(base);
     if (i < 0) return 0;
     if (i == P_VOLUME) return fmt_db(buf, len, D->pv[i]);
+    if (i == P_SWING) return snprintf(buf, len, "%.0f %%", D->pv[i]);
     if (i == P_LPF_CUT) return D->pv[i] >= 99.5f ? snprintf(buf, len, "OPEN") : fmt_hz(buf, len, k_freq(D->pv[i]));
     if (i >= P_V1_OSC_WAVE && i < P_V1_OSC_WAVE + NV * VSTRIDE)
         return voice_display(D, (i - P_V1_OSC_WAVE) / VSTRIDE, (i - P_V1_OSC_WAVE) % VSTRIDE, buf, len);
@@ -438,8 +658,13 @@ static void *e_create(const char *dir) {
     D->kit_pending = -1;
     D->seed = 0x2545f491u;
     D->lpf_cut = D->lpf_res = -1.0f;
+    D->sq_queued = -1;
+    D->sq_last = LONG_MIN / 2;
+    D->sq_step = -1;
+    patset_init(&D->wp);
     kits_load(D);
     if (!D->kits) { free(D); return NULL; }
+    D->wp = D->kits[0].ps;   /* the first kit's patterns, with its sounds (the defaults) */
     return D;
 }
 
@@ -465,6 +690,12 @@ int mpc_engine_changed(void *inst, char *key, int len) {
         D->changed &= ~4;
         D->changed_k = 0;
     }
+    if (D->changed & 8) { D->changed &= ~8; return snprintf(key, len, "pattern") > 0; }   /* a chain, pad 16 */
+    if (D->changed & 16) {   /* BASE NOTE set the eight notes */
+        if (D->changed_n < NV) return snprintf(key, len, "v%d_note", ++D->changed_n) > 0;
+        D->changed &= ~16;
+        D->changed_n = 0;
+    }
     return 0;
 }
 
@@ -472,8 +703,13 @@ int mpc_engine_changed(void *inst, char *key, int len) {
  * tempo, and stops (and doesn't start) while the Force plays. */
 void mpc_engine_transport(void *inst, double bpm, double ppq, int playing) {
     db_t *D = inst;
-    (void)ppq;
-    if (playing && !(D->tp_seen && D->tp_playing)) D->seq_on = 0;
+    int was = D->tp_seen && D->tp_playing;
+    if (playing && !was) D->seq_on = 0;
+    /* where the song should be by now; anything else (a start, a loop, a locate) lines the sequencer up again */
+    double expect = D->tp_ppq + D->tp_frames * (D->tp_bpm > 20.0 ? D->tp_bpm : 120.0) / 60.0 / SR;
+    if (!playing || !was || ppq < 0.0 || fabs(ppq - expect) > 0.02) { D->sq_last = LONG_MIN / 2; D->sq_resync = 1; }
+    D->tp_ppq = ppq;
+    D->tp_frames = 0;
     D->tp_seen = 1;
     D->tp_playing = playing != 0;
     if (bpm > 20.0) D->tp_bpm = bpm;

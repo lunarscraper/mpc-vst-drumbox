@@ -148,8 +148,31 @@ def params():
     P.append(dict(key="drum_voice", name="TO VOICE", options=["V%d" % v for v in range(1, NV + 1)], default="V1"))
     P.append(dict(key="drum_take", name="TAKE", momentary=True))
     P.append(dict(key="drum_play", name="PLAY SOUND", momentary=True))
-    # pads 9-15 (BASE NOTE + 8 .. + 14) browse while the Force is stopped: kit -/+, FAVORIT, PLAY, sound -/+, TAKE
+    # pads 9-16 (BASE NOTE + 8 .. + 15) browse while the Force is stopped: kit -/+, FAVORIT, PLAY, sound -/+, TAKE,
+    # next pattern (pad 16 also while it plays)
     P.append(dict(key="pad_browse", name="PAD BROWSE", options=["OFF", "ON"], default="OFF"))
+    # 0.3.0: the sequencer (patterns A-L, played with the Force's song position) and a note per voice
+    P.append(dict(key="seq", name="SEQ", options=["OFF", "ON"], default="OFF"))
+    P.append(dict(key="pattern", name="PATTERN", options=[chr(65 + i) for i in range(12)], default="A"))
+    P.append(dict(key="hold", name="HOLD", options=["OFF", "KIT", "PATTERN"], default="OFF"))
+    P.append(dict(key="pat_len", name="LENGTH", min=1, max=16, default=16, display="int"))
+    P.append(dict(key="chain", name="CHAIN", options=["OFF", "ON"], default="ON"))
+    P.append(dict(key="swing", name="SWING", min=0, max=100, default=0, dynamic_display=True))
+    for i in range(1, NV * 16 + 1):   # the grid: voice (row) x step (column); a tap: off -> on -> accent -> off
+        P.append(dict(key="st_%d" % i, name="V%d STEP %d" % ((i - 1) // 16 + 1, (i - 1) % 16 + 1), min=0, max=1,
+                      display="string", type="slot"))
+    for v in range(1, NV + 1):        # lit = plays; a tap mutes / unmutes
+        P.append(dict(key="mute_%d" % v, name="V%d MUTE" % v, min=0, max=1, display="string", type="slot"))
+    for i in range(1, 17):            # the step playing
+        P.append(dict(key="ph_%d" % i, name="STEP %d LIGHT" % i, min=0, max=1, display="string", type="slot"))
+    for v in range(1, NV + 1):        # the MIDI note that plays the voice (V1 NOTE on MASTER sets all eight)
+        P.append(dict(key="v%d_note" % v, name="V%d NOTE" % v, options=NOTE_NAMES, default=NOTE_NAMES[35 + v]))
+        P.append(dict(key="v%d_note_prev" % v, name="V%d NOTE -" % v, momentary=True, step_of="v%d_note" % v, step_delta=-1))
+        P.append(dict(key="v%d_note_next" % v, name="V%d NOTE +" % v, momentary=True, step_of="v%d_note" % v, step_delta=1))
+    P.append(dict(key="pat_len_prev", name="LENGTH -", momentary=True, step_of="pat_len", step_delta=-1))
+    P.append(dict(key="pat_len_next", name="LENGTH +", momentary=True, step_of="pat_len", step_delta=1))
+    P.append(dict(key="swing_prev", name="SWING -", momentary=True, step_of="swing", step_delta=-5))
+    P.append(dict(key="swing_next", name="SWING +", momentary=True, step_of="swing", step_delta=5))
     return P
 
 
@@ -229,12 +252,31 @@ def layout():
     L.append('knob cx=402 cy=500 r=44 label="LPF RESO" key=lpf_res')
     L.append('frame x=510 y=346 w=290 h=356 title="PADS"')
     L.append('enum_v cx=655 cy=492 label="V1 NOTE" key=base_note sw=150 sh=40')
-    L.append('enum_h cx=655 cy=652 label="PADS 9-15: BROWSE" key=pad_browse sw=80 sh=44')
+    L.append('enum_h cx=655 cy=652 label="PADS 9-16: BROWSE" key=pad_browse sw=80 sh=44')
     L.append('frame x=814 y=346 w=450 h=356 title="USER SLOTS"')
     L.append("stepper cx=1039 cy=440 w=410 h=70 label=\"\" key=slot get=slot_name style=dotmatrix")
     L.append('button cx=1039 cy=560 w=220 h=70 label="SAVE" key=save %s' % BTN_L)
     L.append('text cx=1039 cy=660 label="SAVE: THE VOICES AS THEY ARE" size=1.5')
     L.append('qlinks "MASTER" = volume,lpf_cut,lpf_res,-,slot')
+    # PATTERN: the sequencer, all eight voices at a glance
+    L.append("[tab PATTERN]")
+    L.append('enum_h cx=96 cy=146 label="SEQ" key=seq sw=70 sh=46')
+    L.append('enum_h cx=356 cy=146 label="HOLD" key=hold sw=108 sh=46')
+    L.append("stepper cx=630 cy=146 w=200 h=46 label=\"LENGTH\" key=pat_len")
+    L.append('enum_h cx=826 cy=146 label="CHAIN" key=chain sw=70 sh=46')
+    L.append('stepper cx=1110 cy=146 w=240 h=46 label="SWING" key=swing')
+    L.append("list x=140 y=204 w=1124 h=18 key=ph cols=16 rows=1 th=18 gap=4")
+    L.append("list x=16 y=228 w=112 h=380 key=mute cols=1 rows=8 th=44 gap=4 tsize=20")
+    L.append("list x=140 y=228 w=1124 h=380 key=st cols=16 rows=8 th=44 gap=4 tsize=20 talign=center")
+    L.append('enum_h cx=640 cy=668 label="" key=pattern sw=92 sh=52')
+    L.append('qlinks "PATTERN" = swing,pat_len')
+    # NOTES: a MIDI note per voice, for the Force's own sequencer (or pads laid out differently)
+    L.append("[tab NOTES]")
+    L.append('frame x=16 y=98 w=1248 h=604 title="THE NOTE THAT PLAYS EACH VOICE"')
+    for v in range(1, NV + 1):
+        col, row = (v - 1) // 4, (v - 1) % 4
+        L.append("stepper cx=%d cy=%d w=460 h=74 label=\"V%d NOTE\" key=v%d_note style=dotmatrix"
+                 % (340 + 600 * col, 210 + 128 * row, v, v))
     # SOUNDS: .mtdrum files, one voice at a time
     L.append("[tab SOUNDS]")
     L.append('frame x=16 y=98 w=1248 h=604 title="MICROTONIC DRUM SOUNDS (.MTDRUM)"')
@@ -304,11 +346,6 @@ def builtin_kits():
            "static const builtin_kit_t BUILTIN_KITS[] = {"]
     for name, rel in BUILTIN:
         text = open(os.path.join(ROOT, "kits", rel)).read()
-        if rel.endswith(".mtpreset"):   # only pattern A is read (the preview): leave B-L out of the plugin
-            head, _, pats = text.partition("\tPatterns:")
-            if pats:
-                a = pats.split("\n\t\tb: {")[0]
-                text = head + "\tPatterns:" + a + "\n\t}\n}\n"
         out.append("    {%s, %d,\n%s},"
                    % (json.dumps(name), int(rel.endswith(".tkit")), c_string(text)))
     out.append("};")

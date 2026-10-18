@@ -4,12 +4,14 @@
 [nb_tonic](https://github.com/sonocircuit/nb_tonic) (sonocircuit) bzw. dessen Vorlage
 [supertonic](https://github.com/schollz/supercollider-microtonic) (Zack Scholl), beide inspiriert von Sonic Charge
 Microtonic. Lädt **Microtonic-Presets (`.mtpreset`, z. B. aus dem Patternarium)**, **Microtonic-Drum-Sounds
-(`.mtdrum`)** und **nb_tonic-Kits (`.tkit`)**, hat einen **Preset-Browser mit Vorhören** (Pattern A des Presets),
-einen **Favoritenordner** und **32 eigene Speicherplätze**. Kein Sequencer: gespielt wird über Pads, Clips oder
-MIDI-Spuren.
+(`.mtdrum`)** und **nb_tonic-Kits (`.tkit`)**, hat einen **eingebauten Sequencer** mit den Patterns A–L der
+Presets (alle acht Spuren auf einen Blick, synchron zur Force), **HOLD** zum Weiterblättern bei festem Kit oder
+festem Pattern, einen **Preset-Browser mit Vorhören**, einen **Favoritenordner** und **32 eigene Speicherplätze**.
+Mit ausgeschaltetem Sequencer spielt der Force-Sequencer die Stimmen, jede auf ihrer eigenen Note.
 · Lizenz: MIT ([`LICENSE`](LICENSE))
 
 <img src="screenshots/page_0.png" width="760" alt="Drumbox, MASTER">
+<img src="screenshots/page_1.png" width="760" alt="Drumbox, PATTERN (Sequencer)">
 <img src="screenshots/page_2.png" width="760" alt="Drumbox, Stimme 1">
 
 **Keine Emulation.** Microtonics DSP ist nicht öffentlich. Drumbox ist eine C-Umsetzung von nb_tonics
@@ -21,13 +23,16 @@ abgeglichen („very close“). Ein Microtonic-Preset klingt in Drumbox also äh
 - Im Plugin-Browser: **[DRUM] Drumbox** von **lunarscraper** (Drum Machine)
 - Installiert wird ein Ordner: `/sdcard/Synths/lunarscraper - VST - [DRUM] Drumbox/` mit `drumbox.so`, Skin und
   dem Datenordner `drumbox/` (eigene Kits und die Speicherplätze; bleibt bei Updates erhalten)
-- 217 Parameter auf 10 Seiten (MASTER, SOUNDS, V1–V8), jede Stimmen-Seite mit drei Q-Link-Bänken (OSC, NOISE, OUT)
+- 403 Parameter auf 12 Seiten (MASTER, PATTERN, NOTES, SOUNDS, V1–V8), jede Stimmen-Seite mit drei Q-Link-Bänken
+  (OSC, NOISE, OUT)
 - Kits im PRESET-Menü der Force und auf der MASTER-Seite unter KIT
 
 ## Spielen
 
 - **Noten 36–43 (C1–G1)** spielen die Stimmen 1–8, auf jedem MIDI-Kanal. Das sind die ersten acht Drum-Pads
-  der Force. Mit **V1 NOTE** (MASTER-Seite) lässt sich verschieben: C0, C1, **G#1 (Pads 9–16)**, C2, C3.
+  der Force. **V1 NOTE** (MASTER-Seite) legt alle acht in einer Reihe neu: C0, C1, **G#1 (Pads 9–16)**, C2, C3.
+- Seite **NOTES**: jede Stimme auf eine **eigene Note** (C-2 bis G8). Liegen zwei Stimmen auf derselben Note,
+  spielen beide. Damit passt Drumbox zu einem Force-Clip oder einem Drum-Layout, das andere Noten benutzt.
 - **Velocity** wirkt über die drei VEL-Regler je Stimme (Oszillator, Rauschen, Pitch-Modulation; 0–200 %).
 - Jeder Schlag ist ein One-Shot: Note-Offs werden ignoriert.
 - Ein neuer Schlag einer Stimme blendet ihren vorigen in 50 ms aus (wie nb_tonic).
@@ -36,13 +41,48 @@ abgeglichen („very close“). Ein Microtonic-Preset klingt in Drumbox also äh
 - CC 120 / 123 stoppen alles. CC 20–35 bewegen die Q-Links der MASTER-Seite, NRPN erreicht jeden Parameter
   (wie in allen Plugins mit diesem Framework).
 
+## Sequencer (Seite PATTERN)
+
+Jedes Microtonic-Preset bringt zwölf Patterns (A–L) mit. Drumbox spielt sie selbst, alle acht Spuren in einer
+Matrix: eine Zeile pro Stimme, 16 Schritte.
+
+1. **SEQ ON** und auf der Force **PLAY**. Drumbox läuft mit der Songposition der Force: startet, stoppt, springt
+   und loopt mit ihr, jeder Schritt sampelgenau, im Tempo der Force. Die Spur braucht dafür keinen Clip.
+2. Unten **A–L** wählt das Pattern. Während die Force spielt, kommt das neue Pattern am **Ende des laufenden**
+   (wie bei Microtonic), sonst sofort (mit PREVIEW ON hörst du es dann gleich).
+3. **Tippen auf ein Feld:** aus → an → **Akzent** (zeigt „A“) → aus. Akzente spielen mit Velocity 127, die übrigen
+   Schläge mit 96. Felder hinter LENGTH zeigen „-“.
+4. Die **linke Spalte (V1–V8)** schaltet Stimmen stumm (dunkel = stumm). Die schmale Zeile über der Matrix zeigt
+   den laufenden Schritt.
+5. **LENGTH** (1–16 Schritte) gilt für das gewählte Pattern. **SWING** (0–100, in 5er-Schritten; Q-Link: Bank
+   PATTERN) verzögert jeden zweiten Schritt um bis zu einen halben Schritt.
+6. **CHAIN ON:** Patterns, die im Preset verkettet sind (Microtonics „Chained“), laufen nacheinander, nach dem
+   letzten der Kette wieder das erste. CHAIN OFF: das Pattern wiederholt sich.
+
+Die Schrittweite kommt aus dem Preset (StepRate 1/16, auch 1/8 oder 1/32), ebenso Tempo (nur fürs Vorhören, die
+Force gibt das Tempo vor), Swing und Mutes.
+
+**HOLD** (für das Blättern im Live-Betrieb):
+
+| HOLD | ein anderes Kit wählen … |
+|---|---|
+| OFF | lädt Sounds **und** Patterns des Kits |
+| KIT | behält die Sounds, lädt nur die **Patterns** (neue Grooves für dein Kit) |
+| PATTERN | behält die Patterns, lädt nur die **Sounds** (dein Groove mit anderem Kit) |
+
+Blätterst du mit HOLD OFF, während die Force spielt, wechselt das Kit sofort, das Pattern des neuen Presets folgt
+am Ende des laufenden.
+
+**Mit dem Force-Sequencer statt des eingebauten:** SEQ OFF, dann spielen nur Noten. Auf der Seite NOTES legst du
+fest, welche Note welche Stimme spielt.
+
 ## Presets durchhören (Browser)
 
 Für viele Presets (z. B. 600 aus dem Patternarium): Dateien in einen Unterordner von `drumbox/` legen (siehe
 unten), Drumbox einfügen, dann auf der **MASTER**-Seite:
 
 1. Mit den **Pfeilen** am KIT-Feld (oder im PRESET-Menü) zum nächsten Preset. Mit **PREVIEW ON** spielt Drumbox
-   dabei sofort das **Pattern A** des Presets zweimal ab: im Tempo der Force, Akzente lauter, die Mutes des Presets
+   dabei sofort das **gewählte Pattern** (zuerst das Startpattern des Presets, meist A) zweimal ab: im Tempo der Force, Akzente lauter, die Mutes des Presets
    beachtet. Presets ohne Pattern (nb_tonic-Kits, Speicherplätze ohne Pattern) spielen ihre acht Stimmen
    nacheinander. **PLAY** spielt es noch einmal.
 2. Gefällt es: **FAVORIT**. Die Originaldatei (mit allen Patterns) wird nach `drumbox/Favoriten/` kopiert und
@@ -50,10 +90,11 @@ unten), Drumbox einfügen, dann auf der **MASTER**-Seite:
    Sonst einfach weiter zum nächsten.
 
 Das Vorhören läuft nur, solange die Force **nicht spielt**, und endet, sobald du ein Pad spielst, ein anderes Kit
-wählst oder PLAY auf der Force drückst. Es ist nur zum Anhören gedacht, kein Sequencer für die Spur.
+wählst oder PLAY auf der Force drückst. Zum Mitspielen mit der Force gibt es den Sequencer (oben).
 
-**Mit den Pads blättern (PAD BROWSE ON, MASTER-Seite):** Die Pads 9–15 bedienen dann den Browser. Das geht nur,
-solange die Force nicht spielt, damit ein Clip mit diesen Noten nie das Kit wechselt:
+**Mit den Pads blättern (PAD BROWSE ON, MASTER-Seite):** Die Pads 9–16 bedienen dann den Browser. Pads 9–15 gehen
+nur, solange die Force nicht spielt, damit ein Clip mit diesen Noten nie das Kit wechselt. Pad 16 (nächstes
+Pattern) geht auch beim Spielen. Eine Note, auf der eine Stimme liegt (NOTES), spielt immer die Stimme:
 
 | Pad (bei V1 NOTE = C1) | Note | Funktion |
 |---|---|---|
@@ -62,6 +103,7 @@ solange die Force nicht spielt, damit ein Clip mit diesen Noten nie das Kit wech
 | 12 | B1 | Pattern noch einmal (PLAY) |
 | 13 / 14 | C2 / C#2 | Sound zurück / vor (SOUNDS-Seite, mit Anspielen) |
 | 15 | D2 | TAKE (Sound in die gewählte Stimme) |
+| 16 | D#2 | nächstes Pattern (A → B → … → L → A), beim Spielen am Ende des laufenden |
 
 Ein Q-Link blättert KIT nicht einzeln (ein Ruck wären 16 Kits), deshalb liegen KIT und SOUND auf keinem Q-Link.
 
@@ -107,7 +149,7 @@ Datei erst, wenn du sie anwählst. So bleibt das Einfügen auch mit 600 Presets 
 
 MASTER-Seite, Feld **USER SLOTS**: mit den Pfeilen (oder dem Q-Link) den Platz wählen, **SAVE** tippen. Gespeichert
 werden alle acht Stimmen so, wie sie gerade eingestellt sind, als **Microtonic-Preset** (`USER/NN.mtpreset`),
-dazu das Pattern A des geladenen Kits (für das Vorhören). Der
+dazu alle zwölf Patterns, wie sie in der Matrix stehen, mit Längen, Ketten, Swing und Mutes. Der
 Platz heißt danach „U05 <Kitname>“ und erscheint sofort in der Kit-Liste. Ein Projekt speichert seine Einstellungen
 ohnehin selbst. Die Plätze sind für Kits, die du in anderen Projekten wiederfinden willst.
 
@@ -124,15 +166,16 @@ ohnehin selbst. Die Plätze sind für Kits, die du in anderen Projekten wiederfi
    Ein Unterordner (hier `Patternarium`) hält Ordnung, eine Ebene tief wird gelesen.
 3. Drumbox von der Spur entfernen und neu einfügen: Die Kits werden beim Einfügen gelesen.
 
-Gelesen werden die acht Klänge und, nur fürs Vorhören, Pattern A mit Tempo, StepRate und Mutes. Die Patterns B–L,
-Swing und Fills nicht. Der Tempo-Zusatz im Namen („(139)“) wird abgeschnitten. nb_tonic-Kits (`.tkit`) gehen genauso.
+Gelesen werden die acht Klänge und alle zwölf Patterns (Trigger, Akzente, Länge, Kette) mit Startpattern, Tempo,
+StepRate, Swing und Mutes. Fills nicht. Der Tempo-Zusatz im Namen („(139)“) wird abgeschnitten. nb_tonic-Kits (`.tkit`) gehen genauso.
 
 Rechte: Patternarium-Patterns sind laut Sonic Charge gemeinfrei (public domain). Die vier eingebauten stammen von
 dort, nb_tonics Kits stehen unter MIT (`kits/nb_tonic/LICENSE`).
 
 ## Unterschiede zu Microtonic
 
-- Kein Sequencer (die Force sequenziert); Pattern A nur zum Vorhören, ohne Swing und Fills
+- Sequencer ohne Fills und ohne Microtonics Pattern-Mutation; SWING ist eine Näherung (jeder zweite Schritt bis zu
+  einem halben Schritt später)
 - Keine getrennten Ausgänge A/B (MPC spielt nur das erste Stereo-Paar eines Plugins)
 - Velocity nach nb_tonics Modell, nicht Microtonics
 - Klang nah dran, nicht identisch (siehe oben)
@@ -161,7 +204,7 @@ Lokal (mit Docker): `python3 mpc/gen.py`, dann `bash "$MPC_VST/tools/build_port.
 |---|---|
 | `src/voice.c` | die Stimme (nb_tonics SynthDef in C), die Regler-Kurven |
 | `src/kits.c` | Kit-Liste (träges Laden), `.mtpreset`-, `.mtdrum`- und `.tkit`-Leser, Umrechnung der Einheiten, SAVE, FAVORIT |
-| `src/drumbox.c` | Parameter, MIDI, Kit-Wechsel, Vorhören (Pattern A), PAD BROWSE, Master (VOLUME, LPF), Zustand, Anzeigen |
+| `src/drumbox.c` | Parameter, MIDI (Note je Stimme), Kit-Wechsel mit HOLD, Sequencer, Matrix, Vorhören, PAD BROWSE, Master (VOLUME, LPF), Zustand, Anzeigen |
 | `mpc/art.py` | zeichnet die großen Touch-Knöpfe (`images/`; von Hand ausführen, braucht Pillow) |
 | `src/dsp.h` | Biquads wie SuperColliders BLowPass/BBandPass/BHiPass/BPeakEQ, softclip, Sinus-Tabelle |
 | `mpc/gen.py` | schreibt `params.json`, `src/params_def.h`, `layout.conf` und `src/builtin_kits.h` aus einer Liste |
@@ -172,10 +215,15 @@ Lokal (mit Docker): `python3 mpc/gen.py`, dann `bash "$MPC_VST/tools/build_port.
 Die Parameter-Reihenfolge ist der VST-Index, über den Projekte und Q-Links gespeichert werden: neue Parameter nur
 hinten anhängen (`mpc/gen.py`).
 
-## Status (2026-10-18)
+## Status (0.3.0, 2026-10-18)
 
 Offline geprüft, noch **nicht auf der Force**:
 
+- Sequencer (0.3.0): Schritte sampelgenau auf dem Raster der Songposition (120 und 97,3 BPM, krumme Puffergrößen),
+  Swing, Ketten (Isober Bewee: A→B→C→D→A), Patternwechsel am Ende des laufenden, Loop zurück an den Anfang,
+  Stille bei gestoppter Force, Matrix-Taps (aus/an/Akzent), Mutes, LENGTH, Note je Stimme, V1 NOTE setzt alle acht,
+  HOLD KIT / PATTERN, Pad 16 beim Spielen; alle zwölf Patterns überstehen SAVE → neu laden und den Projektzustand.
+  Stresstest: 19 Minuten Audio mit zufälligen Sprüngen, Tempi, Kits, Taps und Puffergrößen, ohne Speicherfehler.
 - Host-Test des Frameworks (`tools/test_port.sh`, x86, ASan/UBSan): **PASSED** (60 Prüfungen: zwei Instanzen,
   Parameter, Q-Links, Kit-Liste im PRESET-Menü, Noten → Audio, Zustand speichern/laden, zwei Threads)
 - Skin gebaut ohne Warnungen (Überlappungen, Ränder, Q-Links), Vorschau in `screenshots/`
