@@ -41,8 +41,17 @@ abgeglichen („very close“). Ein Microtonic-Preset klingt in Drumbox also äh
 - Ein neuer Schlag einer Stimme blendet ihren vorigen in 50 ms aus (wie nb_tonic).
 - **CHOKE 1–3**: Stimmen in derselben Gruppe würgen sich gegenseitig ab (z. B. offene und geschlossene Hi-Hat).
   OFF = nur die eigene Stimme.
-- CC 120 / 123 stoppen alles. CC 20–35 bewegen die Q-Links der MASTER-Seite, NRPN erreicht jeden Parameter
-  (wie in allen Plugins mit diesem Framework).
+- **MIDI-CC** (jeder Kanal), z. B. von einem Controller oder aus der Automation einer MIDI-Spur:
+
+  | CC | Wirkung |
+  |---|---|
+  | 102–109 | **Mute V1–V8**: Wert 64–127 = stumm, 0–63 = spielt (wie die linke Spalte der Matrix) |
+  | 110 | **Pattern**: Wert 0–11 = A–L (beim Spielen am Ende des laufenden Patterns, wie ein Tippen auf A–L) |
+  | 120 / 123 | alles stoppen |
+  | 20–35 | Q-Links der MASTER-Seite |
+  | NRPN | jeder Parameter (wie in allen Plugins mit diesem Framework) |
+
+  Für Taster am Controller: auf „Toggle“ (Umschalten) stellen, dann sendet er abwechselnd 127 und 0.
 
 ## Sequencer (Seite PATTERN)
 
@@ -198,7 +207,8 @@ ohnehin selbst. Die Plätze sind für Kits, die du in anderen Projekten wiederfi
    ssh root@<force-ip> "mkdir -p '/sdcard/Synths/lunarscraper - VST - [DRUM] Drumbox/drumbox/Patternarium'"
    scp *.mtpreset "root@<force-ip>:/sdcard/Synths/lunarscraper - VST - [DRUM] Drumbox/drumbox/Patternarium/"
    ```
-   Ein Unterordner (hier `Patternarium`) hält Ordnung, eine Ebene tief wird gelesen.
+   Ein Unterordner (hier `Patternarium`) hält Ordnung. Gelesen wird `drumbox/` selbst und **eine** Ebene darunter
+   (`drumbox/G02/Datei.mtpreset` ja, `drumbox/Patternarium/G02/Datei.mtpreset` nein). Bis zu 2048 Kits insgesamt.
 3. Drumbox von der Spur entfernen und neu einfügen: Die Kits werden beim Einfügen gelesen.
 
 Microtonics eigene Presets (auch das neuere Format mit `Key: Wert Einheit` und Anführungszeichen) lassen sich

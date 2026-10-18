@@ -3,7 +3,8 @@
  * MIDI: each voice plays on its own note (NOTES page; to start with 36-43, C1-G1, a Force's drum pads; V1 NOTE on
  * MASTER sets all eight in a row), on any channel; velocity reaches each voice through its OSC / NOISE / MOD VEL
  * amounts. A voice is one-shot: note-offs do nothing. A new hit fades the voice's (or its choke group's) last one out
- * in 50 ms. CC 120 / 123 stop everything. The sequencer (SEQ ON) plays the patterns A-L with the Force's song
+ * in 50 ms. CC 102-109 mute V1-V8 (64-127 muted, 0-63 plays), CC 110 picks the pattern (0-11 = A-L), CC 120 / 123
+ * stop everything. The sequencer (SEQ ON) plays the patterns A-L with the Force's song
  * position; with SEQ OFF the Force's own sequencer plays the voices through their notes. */
 #include <limits.h>
 #include <math.h>
@@ -125,6 +126,10 @@ static void hit(db_t *D, int v, float vel) {   /* a voice, and its choke group *
     voice_trigger(D, v, vel);
 }
 
+/* MIDI CC (any channel): the lanes' mutes and the pattern, for a controller or a MIDI track's automation */
+#define CC_MUTE 102     /* 102-109: V1-V8 */
+#define CC_PATTERN 110
+
 static int sel_pattern(const db_t *D) { return (int)D->pv[P_PATTERN] % NPAT; }
 #define VNOTE(v) (P_V1_NOTE + 3 * (v))   /* v<n>_note, then its - and + */
 
@@ -189,6 +194,14 @@ static void e_midi(void *inst, const uint8_t *m, int len) {
         int b = d1 - BASE_NOTE[(int)D->pv[P_BASE_NOTE] % 5];
         int run = D->tp_seen && D->tp_playing;   /* while the Force plays only pad 16 (the next pattern, at the bar) */
         if (!played && b >= NV && b < NV + 8 && (int)D->pv[P_PAD_BROWSE] && (!run || b == NV + 7)) pad_browse(D, b - NV);
+    } else if (st == 0xB0 && d1 >= CC_MUTE && d1 < CC_MUTE + NV) {   /* a lane's mute: 64-127 muted, 0-63 plays */
+        uint8_t b = (uint8_t)(1u << (d1 - CC_MUTE));
+        if (d2 >= 64) D->wp.mute |= b;
+        else D->wp.mute &= (uint8_t)~b;
+    } else if (st == 0xB0 && d1 == CC_PATTERN) {   /* the pattern: 0-11 = A-L, taken as a tap on A-L would */
+        pick_pattern(D, d2 < NPAT ? d2 : NPAT - 1);
+        D->changed |= 8;
+        D->changed_p = 0;
     } else if (st == 0xB0 && (d1 == 120 || d1 == 123)) {
         D->seq_on = 0;
         voice_kill(D);
