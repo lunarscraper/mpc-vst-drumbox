@@ -1,0 +1,36 @@
+{
+  "name": "[DRUM] Drumbox",
+  "vendor": "lunarscraper",
+  "uid": "DrBx",
+  "category": "Drum Machine",
+  "so": "drumbox.so",
+  "programs": {
+    "param": "kit",
+    "name": "kit_name",
+    "count": "kit_count",
+    "name_at": "kit_name_at"
+  },
+  "build": {
+    "sources": [
+      "src/drumbox.c",
+      "src/voice.c",
+      "src/kits.c"
+    ],
+    "cflags": [
+      "-Isrc"
+    ],
+    "libs": [
+      "-lm"
+    ]
+  },
+  "params": "params.json",
+  "layout": "layout.conf",
+  "defines": {
+    "QLINK_TRAVEL": 1,
+    "SET_IF_CHANGED": 1,
+    "SAMPLE_ACCURATE": 1,
+    "MODULE_DIR": "\"/sdcard/vst/drumbox\"",
+    "MODULE_SUBDIR": "\"drumbox\""
+  },
+  "art": "html"
+}

@@ -1,0 +1,10 @@
+/* Drumbox's look for the browser-rendered skin artwork (loaded after the framework's tools/html_art/default.css):
+ * a graphite panel, light printing as big as MPC's knob names, orange lights. */
+:root { --title-size: 20px; --label-size: 17px; --seg-size: 17px; --sheen: 0.05; --radius: 5px; }
+.frame-border { stroke: #3a3e47; }
+.frame-title { fill: #ff8a3d; letter-spacing: 0.08em; font-weight: 700; }
+.knob-face { fill: #1d2026; }
+.knob-pointer { stroke: #f4f2ee; }
+.knob-arc { stroke: var(--accent); }
+.knob-track { stroke: #353943; }
+.text { fill: #b9bdc7; letter-spacing: 0.04em; }

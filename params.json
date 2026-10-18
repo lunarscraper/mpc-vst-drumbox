@@ -1,0 +1,1742 @@
+{
+ "name": "Drumbox",
+ "params": [
+  {
+   "key": "kit",
+   "name": "KIT",
+   "type": "stepper",
+   "min": 0,
+   "max": 511,
+   "step": 1,
+   "default": 0,
+   "display": "int",
+   "clamped": true
+  },
+  {
+   "key": "kit_prev",
+   "name": "PREV KIT",
+   "momentary": true,
+   "step_of": "kit",
+   "step_delta": -1
+  },
+  {
+   "key": "kit_next",
+   "name": "NEXT KIT",
+   "momentary": true,
+   "step_of": "kit",
+   "step_delta": 1
+  },
+  {
+   "key": "kit_name",
+   "name": "KIT NAME",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
+  },
+  {
+   "key": "volume",
+   "name": "VOLUME",
+   "min": 0,
+   "max": 100,
+   "default": 83.333,
+   "dynamic_display": true
+  },
+  {
+   "key": "lpf_cut",
+   "name": "LPF CUTOFF",
+   "min": 0,
+   "max": 100,
+   "default": 100,
+   "dynamic_display": true
+  },
+  {
+   "key": "lpf_res",
+   "name": "LPF RESO",
+   "min": 0,
+   "max": 100,
+   "default": 0
+  },
+  {
+   "key": "base_note",
+   "name": "BASE NOTE",
+   "options": [
+    "C0",
+    "C1",
+    "G#1",
+    "C2",
+    "C3"
+   ],
+   "default": "C1"
+  },
+  {
+   "key": "slot",
+   "name": "SLOT",
+   "type": "stepper",
+   "min": 1,
+   "max": 32,
+   "step": 1,
+   "default": 1,
+   "display": "int"
+  },
+  {
+   "key": "slot_prev",
+   "name": "PREV SLOT",
+   "momentary": true,
+   "step_of": "slot",
+   "step_delta": -1
+  },
+  {
+   "key": "slot_next",
+   "name": "NEXT SLOT",
+   "momentary": true,
+   "step_of": "slot",
+   "step_delta": 1
+  },
+  {
+   "key": "slot_name",
+   "name": "SLOT NAME",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
+  },
+  {
+   "key": "save",
+   "name": "SAVE",
+   "momentary": true
+  },
+  {
+   "key": "v1_osc_wave",
+   "name": "V1 OSC WAVE",
+   "options": [
+    "SINE",
+    "TRI",
+    "SAW"
+   ],
+   "default": "SINE"
+  },
+  {
+   "key": "v1_osc_freq",
+   "name": "V1 OSC FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 6.979,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_osc_atk",
+   "name": "V1 OSC ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_osc_dcy",
+   "name": "V1 OSC DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 44.03,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_mod_mode",
+   "name": "V1 MOD MODE",
+   "options": [
+    "DECAY",
+    "SINE",
+    "NOISE"
+   ],
+   "default": "DECAY"
+  },
+  {
+   "key": "v1_mod_amt",
+   "name": "V1 MOD AMOUNT",
+   "min": 0,
+   "max": 100,
+   "default": 91.143,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_mod_rate",
+   "name": "V1 MOD RATE",
+   "min": 0,
+   "max": 100,
+   "default": 22.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_n_filter",
+   "name": "V1 NOISE FILTER",
+   "options": [
+    "LP",
+    "BP",
+    "HP"
+   ],
+   "default": "LP"
+  },
+  {
+   "key": "v1_n_freq",
+   "name": "V1 NOISE FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 80.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_n_q",
+   "name": "V1 NOISE Q",
+   "min": 0,
+   "max": 100,
+   "default": 15.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_n_env",
+   "name": "V1 NOISE ENV",
+   "options": [
+    "EXP",
+    "LIN",
+    "CLAP"
+   ],
+   "default": "EXP"
+  },
+  {
+   "key": "v1_n_atk",
+   "name": "V1 NOISE ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_n_dcy",
+   "name": "V1 NOISE DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 19.399,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_n_stereo",
+   "name": "V1 NOISE STEREO",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "OFF"
+  },
+  {
+   "key": "v1_mix",
+   "name": "V1 MIX",
+   "min": 0,
+   "max": 100,
+   "default": 90.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_dist",
+   "name": "V1 DIST",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "display": "int"
+  },
+  {
+   "key": "v1_eq_freq",
+   "name": "V1 EQ FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 11.403,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_eq_gain",
+   "name": "V1 EQ GAIN",
+   "min": 0,
+   "max": 100,
+   "default": 57.25,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_level",
+   "name": "V1 LEVEL",
+   "min": 0,
+   "max": 100,
+   "default": 83.333,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_pan",
+   "name": "V1 PAN",
+   "min": -100,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v1_osc_vel",
+   "name": "V1 OSC VEL",
+   "min": 0,
+   "max": 200,
+   "default": 100.0,
+   "display": "int"
+  },
+  {
+   "key": "v1_n_vel",
+   "name": "V1 NOISE VEL",
+   "min": 0,
+   "max": 200,
+   "default": 100.0,
+   "display": "int"
+  },
+  {
+   "key": "v1_mod_vel",
+   "name": "V1 MOD VEL",
+   "min": 0,
+   "max": 200,
+   "default": 100.0,
+   "display": "int"
+  },
+  {
+   "key": "v1_choke",
+   "name": "V1 CHOKE",
+   "options": [
+    "OFF",
+    "1",
+    "2",
+    "3"
+   ],
+   "default": "OFF"
+  },
+  {
+   "key": "v2_osc_wave",
+   "name": "V2 OSC WAVE",
+   "options": [
+    "SINE",
+    "TRI",
+    "SAW"
+   ],
+   "default": "TRI"
+  },
+  {
+   "key": "v2_osc_freq",
+   "name": "V2 OSC FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 24.992,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_osc_atk",
+   "name": "V2 OSC ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 10.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_osc_dcy",
+   "name": "V2 OSC DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 36.114,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_mod_mode",
+   "name": "V2 MOD MODE",
+   "options": [
+    "DECAY",
+    "SINE",
+    "NOISE"
+   ],
+   "default": "DECAY"
+  },
+  {
+   "key": "v2_mod_amt",
+   "name": "V2 MOD AMOUNT",
+   "min": 0,
+   "max": 100,
+   "default": 69.566,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_mod_rate",
+   "name": "V2 MOD RATE",
+   "min": 0,
+   "max": 100,
+   "default": 24.566,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_n_filter",
+   "name": "V2 NOISE FILTER",
+   "options": [
+    "LP",
+    "BP",
+    "HP"
+   ],
+   "default": "BP"
+  },
+  {
+   "key": "v2_n_freq",
+   "name": "V2 NOISE FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 78.85,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_n_q",
+   "name": "V2 NOISE Q",
+   "min": 0,
+   "max": 100,
+   "default": 9.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_n_env",
+   "name": "V2 NOISE ENV",
+   "options": [
+    "EXP",
+    "LIN",
+    "CLAP"
+   ],
+   "default": "CLAP"
+  },
+  {
+   "key": "v2_n_atk",
+   "name": "V2 NOISE ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_n_dcy",
+   "name": "V2 NOISE DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 38.349,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_n_stereo",
+   "name": "V2 NOISE STEREO",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "ON"
+  },
+  {
+   "key": "v2_mix",
+   "name": "V2 MIX",
+   "min": 0,
+   "max": 100,
+   "default": 16.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_dist",
+   "name": "V2 DIST",
+   "min": 0,
+   "max": 100,
+   "default": 25.0,
+   "display": "int"
+  },
+  {
+   "key": "v2_eq_freq",
+   "name": "V2 EQ FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 74.353,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_eq_gain",
+   "name": "V2 EQ GAIN",
+   "min": 0,
+   "max": 100,
+   "default": 58.25,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_level",
+   "name": "V2 LEVEL",
+   "min": 0,
+   "max": 100,
+   "default": 83.333,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_pan",
+   "name": "V2 PAN",
+   "min": -100,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v2_osc_vel",
+   "name": "V2 OSC VEL",
+   "min": 0,
+   "max": 200,
+   "default": 94.0,
+   "display": "int"
+  },
+  {
+   "key": "v2_n_vel",
+   "name": "V2 NOISE VEL",
+   "min": 0,
+   "max": 200,
+   "default": 68.0,
+   "display": "int"
+  },
+  {
+   "key": "v2_mod_vel",
+   "name": "V2 MOD VEL",
+   "min": 0,
+   "max": 200,
+   "default": 96.0,
+   "display": "int"
+  },
+  {
+   "key": "v2_choke",
+   "name": "V2 CHOKE",
+   "options": [
+    "OFF",
+    "1",
+    "2",
+    "3"
+   ],
+   "default": "OFF"
+  },
+  {
+   "key": "v3_osc_wave",
+   "name": "V3 OSC WAVE",
+   "options": [
+    "SINE",
+    "TRI",
+    "SAW"
+   ],
+   "default": "TRI"
+  },
+  {
+   "key": "v3_osc_freq",
+   "name": "V3 OSC FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 40.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_osc_atk",
+   "name": "V3 OSC ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_osc_dcy",
+   "name": "V3 OSC DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 29.851,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_mod_mode",
+   "name": "V3 MOD MODE",
+   "options": [
+    "DECAY",
+    "SINE",
+    "NOISE"
+   ],
+   "default": "NOISE"
+  },
+  {
+   "key": "v3_mod_amt",
+   "name": "V3 MOD AMOUNT",
+   "min": 0,
+   "max": 100,
+   "default": 82.275,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_mod_rate",
+   "name": "V3 MOD RATE",
+   "min": 0,
+   "max": 100,
+   "default": 93.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_n_filter",
+   "name": "V3 NOISE FILTER",
+   "options": [
+    "LP",
+    "BP",
+    "HP"
+   ],
+   "default": "HP"
+  },
+  {
+   "key": "v3_n_freq",
+   "name": "V3 NOISE FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 57.026,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_n_q",
+   "name": "V3 NOISE Q",
+   "min": 0,
+   "max": 100,
+   "default": 26.988,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_n_env",
+   "name": "V3 NOISE ENV",
+   "options": [
+    "EXP",
+    "LIN",
+    "CLAP"
+   ],
+   "default": "CLAP"
+  },
+  {
+   "key": "v3_n_atk",
+   "name": "V3 NOISE ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 13.838,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_n_dcy",
+   "name": "V3 NOISE DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 21.105,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_n_stereo",
+   "name": "V3 NOISE STEREO",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "OFF"
+  },
+  {
+   "key": "v3_mix",
+   "name": "V3 MIX",
+   "min": 0,
+   "max": 100,
+   "default": 4.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_dist",
+   "name": "V3 DIST",
+   "min": 0,
+   "max": 100,
+   "default": 40.0,
+   "display": "int"
+  },
+  {
+   "key": "v3_eq_freq",
+   "name": "V3 EQ FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 72.255,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_eq_gain",
+   "name": "V3 EQ GAIN",
+   "min": 0,
+   "max": 100,
+   "default": 50.575,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_level",
+   "name": "V3 LEVEL",
+   "min": 0,
+   "max": 100,
+   "default": 83.333,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_pan",
+   "name": "V3 PAN",
+   "min": -100,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v3_osc_vel",
+   "name": "V3 OSC VEL",
+   "min": 0,
+   "max": 200,
+   "default": 100.0,
+   "display": "int"
+  },
+  {
+   "key": "v3_n_vel",
+   "name": "V3 NOISE VEL",
+   "min": 0,
+   "max": 200,
+   "default": 60.0,
+   "display": "int"
+  },
+  {
+   "key": "v3_mod_vel",
+   "name": "V3 MOD VEL",
+   "min": 0,
+   "max": 200,
+   "default": 100.0,
+   "display": "int"
+  },
+  {
+   "key": "v3_choke",
+   "name": "V3 CHOKE",
+   "options": [
+    "OFF",
+    "1",
+    "2",
+    "3"
+   ],
+   "default": "OFF"
+  },
+  {
+   "key": "v4_osc_wave",
+   "name": "V4 OSC WAVE",
+   "options": [
+    "SINE",
+    "TRI",
+    "SAW"
+   ],
+   "default": "TRI"
+  },
+  {
+   "key": "v4_osc_freq",
+   "name": "V4 OSC FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 47.59,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_osc_atk",
+   "name": "V4 OSC ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_osc_dcy",
+   "name": "V4 OSC DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 12.164,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_mod_mode",
+   "name": "V4 MOD MODE",
+   "options": [
+    "DECAY",
+    "SINE",
+    "NOISE"
+   ],
+   "default": "NOISE"
+  },
+  {
+   "key": "v4_mod_amt",
+   "name": "V4 MOD AMOUNT",
+   "min": 0,
+   "max": 100,
+   "default": 49.49,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_mod_rate",
+   "name": "V4 MOD RATE",
+   "min": 0,
+   "max": 100,
+   "default": 62.228,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_n_filter",
+   "name": "V4 NOISE FILTER",
+   "options": [
+    "LP",
+    "BP",
+    "HP"
+   ],
+   "default": "HP"
+  },
+  {
+   "key": "v4_n_freq",
+   "name": "V4 NOISE FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 32.644,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_n_q",
+   "name": "V4 NOISE Q",
+   "min": 0,
+   "max": 100,
+   "default": 47.001,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_n_env",
+   "name": "V4 NOISE ENV",
+   "options": [
+    "EXP",
+    "LIN",
+    "CLAP"
+   ],
+   "default": "CLAP"
+  },
+  {
+   "key": "v4_n_atk",
+   "name": "V4 NOISE ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 3.915,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_n_dcy",
+   "name": "V4 NOISE DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 21.327,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_n_stereo",
+   "name": "V4 NOISE STEREO",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "OFF"
+  },
+  {
+   "key": "v4_mix",
+   "name": "V4 MIX",
+   "min": 0,
+   "max": 100,
+   "default": 30.5,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_dist",
+   "name": "V4 DIST",
+   "min": 0,
+   "max": 100,
+   "default": 25.0,
+   "display": "int"
+  },
+  {
+   "key": "v4_eq_freq",
+   "name": "V4 EQ FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 84.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_eq_gain",
+   "name": "V4 EQ GAIN",
+   "min": 0,
+   "max": 100,
+   "default": 63.4,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_level",
+   "name": "V4 LEVEL",
+   "min": 0,
+   "max": 100,
+   "default": 79.37,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_pan",
+   "name": "V4 PAN",
+   "min": -100,
+   "max": 100,
+   "default": -19.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v4_osc_vel",
+   "name": "V4 OSC VEL",
+   "min": 0,
+   "max": 200,
+   "default": 100.0,
+   "display": "int"
+  },
+  {
+   "key": "v4_n_vel",
+   "name": "V4 NOISE VEL",
+   "min": 0,
+   "max": 200,
+   "default": 86.0,
+   "display": "int"
+  },
+  {
+   "key": "v4_mod_vel",
+   "name": "V4 MOD VEL",
+   "min": 0,
+   "max": 200,
+   "default": 90.0,
+   "display": "int"
+  },
+  {
+   "key": "v4_choke",
+   "name": "V4 CHOKE",
+   "options": [
+    "OFF",
+    "1",
+    "2",
+    "3"
+   ],
+   "default": "OFF"
+  },
+  {
+   "key": "v5_osc_wave",
+   "name": "V5 OSC WAVE",
+   "options": [
+    "SINE",
+    "TRI",
+    "SAW"
+   ],
+   "default": "SAW"
+  },
+  {
+   "key": "v5_osc_freq",
+   "name": "V5 OSC FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 56.573,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_osc_atk",
+   "name": "V5 OSC ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 7.047,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_osc_dcy",
+   "name": "V5 OSC DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 31.278,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_mod_mode",
+   "name": "V5 MOD MODE",
+   "options": [
+    "DECAY",
+    "SINE",
+    "NOISE"
+   ],
+   "default": "SINE"
+  },
+  {
+   "key": "v5_mod_amt",
+   "name": "V5 MOD AMOUNT",
+   "min": 0,
+   "max": 100,
+   "default": 28.959,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_mod_rate",
+   "name": "V5 MOD RATE",
+   "min": 0,
+   "max": 100,
+   "default": 61.031,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_n_filter",
+   "name": "V5 NOISE FILTER",
+   "options": [
+    "LP",
+    "BP",
+    "HP"
+   ],
+   "default": "BP"
+  },
+  {
+   "key": "v5_n_freq",
+   "name": "V5 NOISE FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 32.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_n_q",
+   "name": "V5 NOISE Q",
+   "min": 0,
+   "max": 100,
+   "default": 61.506,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_n_env",
+   "name": "V5 NOISE ENV",
+   "options": [
+    "EXP",
+    "LIN",
+    "CLAP"
+   ],
+   "default": "EXP"
+  },
+  {
+   "key": "v5_n_atk",
+   "name": "V5 NOISE ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 17.1,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_n_dcy",
+   "name": "V5 NOISE DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 43.107,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_n_stereo",
+   "name": "V5 NOISE STEREO",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "ON"
+  },
+  {
+   "key": "v5_mix",
+   "name": "V5 MIX",
+   "min": 0,
+   "max": 100,
+   "default": 100.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_dist",
+   "name": "V5 DIST",
+   "min": 0,
+   "max": 100,
+   "default": 4.0,
+   "display": "int"
+  },
+  {
+   "key": "v5_eq_freq",
+   "name": "V5 EQ FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 86.773,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_eq_gain",
+   "name": "V5 EQ GAIN",
+   "min": 0,
+   "max": 100,
+   "default": 59.325,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_level",
+   "name": "V5 LEVEL",
+   "min": 0,
+   "max": 100,
+   "default": 78.321,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_pan",
+   "name": "V5 PAN",
+   "min": -100,
+   "max": 100,
+   "default": -14.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v5_osc_vel",
+   "name": "V5 OSC VEL",
+   "min": 0,
+   "max": 200,
+   "default": 100.0,
+   "display": "int"
+  },
+  {
+   "key": "v5_n_vel",
+   "name": "V5 NOISE VEL",
+   "min": 0,
+   "max": 200,
+   "default": 90.0,
+   "display": "int"
+  },
+  {
+   "key": "v5_mod_vel",
+   "name": "V5 MOD VEL",
+   "min": 0,
+   "max": 200,
+   "default": 76.0,
+   "display": "int"
+  },
+  {
+   "key": "v5_choke",
+   "name": "V5 CHOKE",
+   "options": [
+    "OFF",
+    "1",
+    "2",
+    "3"
+   ],
+   "default": "1"
+  },
+  {
+   "key": "v6_osc_wave",
+   "name": "V6 OSC WAVE",
+   "options": [
+    "SINE",
+    "TRI",
+    "SAW"
+   ],
+   "default": "TRI"
+  },
+  {
+   "key": "v6_osc_freq",
+   "name": "V6 OSC FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 28.992,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_osc_atk",
+   "name": "V6 OSC ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_osc_dcy",
+   "name": "V6 OSC DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 47.341,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_mod_mode",
+   "name": "V6 MOD MODE",
+   "options": [
+    "DECAY",
+    "SINE",
+    "NOISE"
+   ],
+   "default": "SINE"
+  },
+  {
+   "key": "v6_mod_amt",
+   "name": "V6 MOD AMOUNT",
+   "min": 0,
+   "max": 100,
+   "default": 73.385,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_mod_rate",
+   "name": "V6 MOD RATE",
+   "min": 0,
+   "max": 100,
+   "default": 12.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_n_filter",
+   "name": "V6 NOISE FILTER",
+   "options": [
+    "LP",
+    "BP",
+    "HP"
+   ],
+   "default": "BP"
+  },
+  {
+   "key": "v6_n_freq",
+   "name": "V6 NOISE FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 57.85,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_n_q",
+   "name": "V6 NOISE Q",
+   "min": 0,
+   "max": 100,
+   "default": 25.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_n_env",
+   "name": "V6 NOISE ENV",
+   "options": [
+    "EXP",
+    "LIN",
+    "CLAP"
+   ],
+   "default": "LIN"
+  },
+  {
+   "key": "v6_n_atk",
+   "name": "V6 NOISE ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 12.599,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_n_dcy",
+   "name": "V6 NOISE DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 10.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_n_stereo",
+   "name": "V6 NOISE STEREO",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "ON"
+  },
+  {
+   "key": "v6_mix",
+   "name": "V6 MIX",
+   "min": 0,
+   "max": 100,
+   "default": 85.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_dist",
+   "name": "V6 DIST",
+   "min": 0,
+   "max": 100,
+   "default": 21.0,
+   "display": "int"
+  },
+  {
+   "key": "v6_eq_freq",
+   "name": "V6 EQ FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 49.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_eq_gain",
+   "name": "V6 EQ GAIN",
+   "min": 0,
+   "max": 100,
+   "default": 57.4,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_level",
+   "name": "V6 LEVEL",
+   "min": 0,
+   "max": 100,
+   "default": 83.333,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_pan",
+   "name": "V6 PAN",
+   "min": -100,
+   "max": 100,
+   "default": 22.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v6_osc_vel",
+   "name": "V6 OSC VEL",
+   "min": 0,
+   "max": 200,
+   "default": 92.0,
+   "display": "int"
+  },
+  {
+   "key": "v6_n_vel",
+   "name": "V6 NOISE VEL",
+   "min": 0,
+   "max": 200,
+   "default": 87.0,
+   "display": "int"
+  },
+  {
+   "key": "v6_mod_vel",
+   "name": "V6 MOD VEL",
+   "min": 0,
+   "max": 200,
+   "default": 83.0,
+   "display": "int"
+  },
+  {
+   "key": "v6_choke",
+   "name": "V6 CHOKE",
+   "options": [
+    "OFF",
+    "1",
+    "2",
+    "3"
+   ],
+   "default": "1"
+  },
+  {
+   "key": "v7_osc_wave",
+   "name": "V7 OSC WAVE",
+   "options": [
+    "SINE",
+    "TRI",
+    "SAW"
+   ],
+   "default": "SINE"
+  },
+  {
+   "key": "v7_osc_freq",
+   "name": "V7 OSC FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 84.59,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_osc_atk",
+   "name": "V7 OSC ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_osc_dcy",
+   "name": "V7 OSC DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 10.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_mod_mode",
+   "name": "V7 MOD MODE",
+   "options": [
+    "DECAY",
+    "SINE",
+    "NOISE"
+   ],
+   "default": "NOISE"
+  },
+  {
+   "key": "v7_mod_amt",
+   "name": "V7 MOD AMOUNT",
+   "min": 0,
+   "max": 100,
+   "default": 50.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_mod_rate",
+   "name": "V7 MOD RATE",
+   "min": 0,
+   "max": 100,
+   "default": 73.228,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_n_filter",
+   "name": "V7 NOISE FILTER",
+   "options": [
+    "LP",
+    "BP",
+    "HP"
+   ],
+   "default": "HP"
+  },
+  {
+   "key": "v7_n_freq",
+   "name": "V7 NOISE FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 87.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_n_q",
+   "name": "V7 NOISE Q",
+   "min": 0,
+   "max": 100,
+   "default": 39.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_n_env",
+   "name": "V7 NOISE ENV",
+   "options": [
+    "EXP",
+    "LIN",
+    "CLAP"
+   ],
+   "default": "CLAP"
+  },
+  {
+   "key": "v7_n_atk",
+   "name": "V7 NOISE ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 10.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_n_dcy",
+   "name": "V7 NOISE DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 26.207,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_n_stereo",
+   "name": "V7 NOISE STEREO",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "ON"
+  },
+  {
+   "key": "v7_mix",
+   "name": "V7 MIX",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_dist",
+   "name": "V7 DIST",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "display": "int"
+  },
+  {
+   "key": "v7_eq_freq",
+   "name": "V7 EQ FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 67.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_eq_gain",
+   "name": "V7 EQ GAIN",
+   "min": 0,
+   "max": 100,
+   "default": 58.975,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_level",
+   "name": "V7 LEVEL",
+   "min": 0,
+   "max": 100,
+   "default": 79.031,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_pan",
+   "name": "V7 PAN",
+   "min": -100,
+   "max": 100,
+   "default": -15.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v7_osc_vel",
+   "name": "V7 OSC VEL",
+   "min": 0,
+   "max": 200,
+   "default": 52.0,
+   "display": "int"
+  },
+  {
+   "key": "v7_n_vel",
+   "name": "V7 NOISE VEL",
+   "min": 0,
+   "max": 200,
+   "default": 86.0,
+   "display": "int"
+  },
+  {
+   "key": "v7_mod_vel",
+   "name": "V7 MOD VEL",
+   "min": 0,
+   "max": 200,
+   "default": 90.0,
+   "display": "int"
+  },
+  {
+   "key": "v7_choke",
+   "name": "V7 CHOKE",
+   "options": [
+    "OFF",
+    "1",
+    "2",
+    "3"
+   ],
+   "default": "2"
+  },
+  {
+   "key": "v8_osc_wave",
+   "name": "V8 OSC WAVE",
+   "options": [
+    "SINE",
+    "TRI",
+    "SAW"
+   ],
+   "default": "SAW"
+  },
+  {
+   "key": "v8_osc_freq",
+   "name": "V8 OSC FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 76.255,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_osc_atk",
+   "name": "V8 OSC ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_osc_dcy",
+   "name": "V8 OSC DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 29.083,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_mod_mode",
+   "name": "V8 MOD MODE",
+   "options": [
+    "DECAY",
+    "SINE",
+    "NOISE"
+   ],
+   "default": "NOISE"
+  },
+  {
+   "key": "v8_mod_amt",
+   "name": "V8 MOD AMOUNT",
+   "min": 0,
+   "max": 100,
+   "default": 77.951,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_mod_rate",
+   "name": "V8 MOD RATE",
+   "min": 0,
+   "max": 100,
+   "default": 88.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_n_filter",
+   "name": "V8 NOISE FILTER",
+   "options": [
+    "LP",
+    "BP",
+    "HP"
+   ],
+   "default": "HP"
+  },
+  {
+   "key": "v8_n_freq",
+   "name": "V8 NOISE FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 77.026,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_n_q",
+   "name": "V8 NOISE Q",
+   "min": 0,
+   "max": 100,
+   "default": 27.988,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_n_env",
+   "name": "V8 NOISE ENV",
+   "options": [
+    "EXP",
+    "LIN",
+    "CLAP"
+   ],
+   "default": "CLAP"
+  },
+  {
+   "key": "v8_n_atk",
+   "name": "V8 NOISE ATTACK",
+   "min": 0,
+   "max": 100,
+   "default": 15.467,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_n_dcy",
+   "name": "V8 NOISE DECAY",
+   "min": 0,
+   "max": 100,
+   "default": 38.349,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_n_stereo",
+   "name": "V8 NOISE STEREO",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "ON"
+  },
+  {
+   "key": "v8_mix",
+   "name": "V8 MIX",
+   "min": 0,
+   "max": 100,
+   "default": 12.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_dist",
+   "name": "V8 DIST",
+   "min": 0,
+   "max": 100,
+   "default": 37.0,
+   "display": "int"
+  },
+  {
+   "key": "v8_eq_freq",
+   "name": "V8 EQ FREQ",
+   "min": 0,
+   "max": 100,
+   "default": 87.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_eq_gain",
+   "name": "V8 EQ GAIN",
+   "min": 0,
+   "max": 100,
+   "default": 62.45,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_level",
+   "name": "V8 LEVEL",
+   "min": 0,
+   "max": 100,
+   "default": 73.429,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_pan",
+   "name": "V8 PAN",
+   "min": -100,
+   "max": 100,
+   "default": 0.0,
+   "dynamic_display": true
+  },
+  {
+   "key": "v8_osc_vel",
+   "name": "V8 OSC VEL",
+   "min": 0,
+   "max": 200,
+   "default": 82.0,
+   "display": "int"
+  },
+  {
+   "key": "v8_n_vel",
+   "name": "V8 NOISE VEL",
+   "min": 0,
+   "max": 200,
+   "default": 60.0,
+   "display": "int"
+  },
+  {
+   "key": "v8_mod_vel",
+   "name": "V8 MOD VEL",
+   "min": 0,
+   "max": 200,
+   "default": 100.0,
+   "display": "int"
+  },
+  {
+   "key": "v8_choke",
+   "name": "V8 CHOKE",
+   "options": [
+    "OFF",
+    "1",
+    "2",
+    "3"
+   ],
+   "default": "2"
+  }
+ ]
+}
