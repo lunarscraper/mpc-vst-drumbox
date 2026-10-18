@@ -1,13 +1,15 @@
 /* Drumbox: an eight-voice drum synth for MPC / Force, after nb_tonic (sonocircuit, MIT), which is a port of
  * supertonic (Zack Scholl, MIT), itself inspired by Sonic Charge Microtonic. It loads Microtonic presets (.mtpreset,
- * e.g. from Patternarium), Microtonic drum patches (.mtdrum, one voice) and nb_tonic kits (.tkit). No sequencer: the
- * voices are played by MIDI notes; a preset's pattern A only plays to preview it.
+ * e.g. from Patternarium), Microtonic drum patches (.mtdrum, one voice) and nb_tonic kits (.tkit). Its sequencer plays
+ * a preset's patterns A-L with the host's song position; or MIDI notes play the voices. EXPLORE finds presets with a
+ * similar sound or groove and mutates both.
  *
  * Per voice: an oscillator (sine / triangle / saw) with a pitch modulation (decay / sine / noise), filtered noise
  * (LP / BP / HP, three envelope shapes: exp, linear, clap), their mix, distortion, a peak EQ, level and pan, three
  * velocity amounts and a choke group. The master: VOLUME and a resonant low-pass. All written for this repo in C from
  * nb_tonic's SuperCollider SynthDef (lib/nb_tonic.sc); no upstream code is compiled in. */
 #pragma once
+#include <pthread.h>
 #include <stdint.h>
 #include "dsp.h"
 #include "params_def.h"
@@ -17,6 +19,8 @@
 #define MAX_DRUMS 4096    /* .mtdrum files listed */
 #define NUSER 32          /* the user slots: <data>/USER/NN.mtpreset */
 #define AUD NV            /* the audition voice (SOUNDS page), after the eight */
+#define NSIM 6            /* EXPLORE: similar sounds / grooves shown */
+#define NUNDO 16          /* EXPLORE: steps UNDO goes back */
 #define NINST 2           /* per voice: the one playing and the one fading out (choke, retrigger) */
 
 /* a voice's parameters, in PDEF order from P_V1_OSC_WAVE (VSTRIDE apart) */
@@ -116,6 +120,19 @@ typedef struct {
     inst_t in[NINST];
 } voice_t;
 
+/* EXPLORE: what is compared of a kit (a copy, so the index thread never touches the kit list's entries) */
+typedef struct {
+    float pv[NV][NVP];
+    patset_t ps;
+} feat_t;
+
+typedef struct {   /* what UNDO brings back */
+    float vp[NV * VSTRIDE];
+    patset_t wp;
+    float pattern, swing;
+    int snd_src, grv_src;
+} undo_t;
+
 typedef struct {
     float pv[NP];
     voice_t v[NV + 1];             /* the eight, and the audition voice (AUD) */
@@ -142,10 +159,24 @@ typedef struct {
     double tp_bpm, tp_ppq;
     long tp_frames;                /* frames rendered since the host last told the position */
     int changed, changed_k, changed_n;   /* what changed by itself, for the screen (mpc_engine_changed): 1 KIT, 2 SOUND,
-                                          * 4 TAKE, 8 PATTERN, 16 the notes */
+                                          * 4 TAKE, 8 PATTERN, 16 the notes, 32 all voices */
     biquad_t lpf; bq_state_t lpfs[2];
     float lpf_cut, lpf_res;        /* the coefficients' settings */
     uint32_t seed;
+    /* EXPLORE (explore.c): every kit's sound and patterns, read by a thread of its own; the nearest ones */
+    feat_t *ix;
+    unsigned char *ix_ok;          /* per kit: 0 not yet, 1 in ix, 2 unreadable */
+    char **ix_path;                /* the index thread's own copy of the file paths */
+    int ix_n, ix_count, ix_last;   /* kits it reads; how many it has; how many the lists last saw */
+    int ix_stop, ix_running;
+    pthread_t ix_th;
+    int snd_src, grv_src;          /* the kits the voices' sounds / the patterns come from (-1: changed since) */
+    int sim_snd[NSIM], sim_grv[NSIM], sim_grv_pat[NSIM], nsim_snd, nsim_grv, sim_dirty;
+    undo_t undo[NUNDO];
+    int nundo, undo_top;
+    uint32_t mseed;
+    int changed_m, changed_p;
+    char ex_info[48];
 } db_t;
 
 /* voice.c */
@@ -154,7 +185,20 @@ void voice_choke(db_t *D, int v);
 void voice_kill(db_t *D);
 void voice_render(db_t *D, int v, float *L, float *R, int n);
 
+/* explore.c */
+void ex_start(db_t *D);                      /* after kits_load: the index thread */
+void ex_stop(db_t *D);
+void ex_kit_changed(db_t *D, int k);         /* kit k's entry changed (SAVE, FAVORIT): index it again from memory */
+void ex_find(db_t *D);                       /* the nearest sounds and grooves to the voices and pattern now */
+void ex_poll(db_t *D);                       /* the lists again if the index grew (cheap otherwise) */
+void ex_push(db_t *D);                       /* remember the sound and patterns now, for UNDO */
+int ex_undo(db_t *D);
+void ex_mutate_sound(db_t *D);
+void ex_mutate_groove(db_t *D);
+int ex_take(db_t *D, int groove, int i);     /* a similar sound / groove tapped: 1 = taken */
+
 /* kits.c */
+int kit_read_file(const char *path, kit_t *k);   /* a file's kit, into k (no list entry touched); 1 = ok */
 void kits_load(db_t *D);
 void kits_free(db_t *D);
 int kit_ensure(db_t *D, int n);              /* read kit n's file if not yet; 1 = usable */

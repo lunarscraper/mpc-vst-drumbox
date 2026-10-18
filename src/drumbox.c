@@ -83,6 +83,10 @@ static void load_kit(db_t *D, int n) {
     kit_ensure(D, n);   /* normally done already where KIT was set (e_set_param): the file isn't read here */
     const kit_t *k = &D->kits[n];
     int hold = (int)D->pv[P_HOLD];
+    ex_push(D);   /* UNDO brings back what was there (a mutation, say) */
+    if (hold != 1) D->snd_src = n;
+    if (hold != 2) D->grv_src = n;
+    D->sim_dirty = 1;
     if (hold != 1)
         for (int v = 0; v < NV; v++)
             for (int j = 0; j < NVP; j++) D->pv[VK(v, j)] = k->pv[v][j];
@@ -130,6 +134,7 @@ static void pick_pattern(db_t *D, int i) {
     D->pv[P_PATTERN] = (float)i;
     D->pv[P_PAT_LEN] = (float)D->wp.p[i].len;
     D->sq_queued = i;
+    D->sim_dirty = 1;   /* similar grooves: to this one */
 }
 
 /* PAD BROWSE: pads 9-16 (BASE NOTE + 8 .. + 15): kit -/+, FAVORIT, PLAY, sound -/+, TAKE, next pattern. A kit picked here is read on the audio
@@ -345,22 +350,27 @@ static void e_render(void *inst, int16_t *out, int frames) {
     ftz_off(fp);
 }
 
-/* ---- parameters ------------------------------------------------------------------------------------------------ */
-
 /* ---- the grid: st_N (voice row, step column), mute_N, ph_N; asked for every 10 ms, so they skip the key search -- */
 
-static int tile_key(const char *key, int *kind, int *n) {   /* "st_12" / "st_12_on": kind 0, 1, 2 = st, mute, ph */
+/* "st4_6" (lane 4, step 6), "mute4_1", "ph6" + "_on" or not: kind 0, 1, 2 = st, mute, ph; n = 0-based tile (st: lane
+ * x 16 + step) */
+static int tile_key(const char *key, int *kind, int *n) {
     const char *c;
-    if (key[0] == 's' && key[1] == 't' && key[2] == '_') { *kind = 0; c = key + 3; }
-    else if (!strncmp(key, "mute_", 5)) { *kind = 1; c = key + 5; }
-    else if (key[0] == 'p' && key[1] == 'h' && key[2] == '_') { *kind = 2; c = key + 3; }
+    int lane = 0;
+    if (key[0] == 's' && key[1] == 't' && key[2] >= '1' && key[2] <= '0' + NV && key[3] == '_') { *kind = 0; lane = key[2] - '1'; c = key + 4; }
+    else if (!strncmp(key, "mute", 4) && key[4] >= '1' && key[4] <= '0' + NV && key[5] == '_' && key[6] == '1') {
+        *kind = 1;
+        *n = key[4] - '1';
+        c = key + 7;
+        if (!*c) return 0;
+        return strcmp(c, "_on") ? -1 : 1;
+    } else if (key[0] == 'p' && key[1] == 'h' && key[2] == '_') { *kind = 2; c = key + 3; }
     else return -1;
     if (*c < '1' || *c > '9') return -1;
     char *e;
     long v = strtol(c, &e, 10);
-    int lim = *kind == 0 ? NV * 16 : *kind == 1 ? NV : 16;
-    if (v < 1 || v > lim) return -1;
-    *n = (int)v - 1;
+    if (v < 1 || v > 16) return -1;
+    *n = lane * 16 + (int)v - 1;
     if (!*e) return 0;
     return strcmp(e, "_on") ? -1 : 1;
 }
@@ -390,6 +400,29 @@ static void tile_tap(db_t *D, int kind, int n) {
         else if (!(q->acc[v] & b)) q->acc[v] |= b;
         else { q->trig[v] &= (uint16_t)~b; q->acc[v] &= (uint16_t)~b; }
     } else if (kind == 1) D->wp.mute ^= (uint8_t)(1u << n);
+}
+
+/* EXPLORE's tiles: a similar sound (the kit's name) or groove (the name and the pattern); lit: the one taken */
+static int ex_tile(db_t *D, int groove, int i, int on, char *buf, int len) {
+    if (i < 0 || i >= NSIM) return -1;
+    if (!on) ex_poll(D);   /* the lists, when the index has grown */
+    int n = groove ? D->nsim_grv : D->nsim_snd, reading = __atomic_load_n(&D->ix_count, __ATOMIC_ACQUIRE) < D->ix_n;
+    if (i >= n) {
+        if (on) return snprintf(buf, len, "0");
+        if (i == 0 && groove && !reading) return snprintf(buf, len, "(EMPTY PATTERN)");
+        return snprintf(buf, len, "%s", i == 0 && reading ? "READING THE PRESETS ..." : "");
+    }
+    int k = groove ? D->sim_grv[i] : D->sim_snd[i];
+    if (on) return snprintf(buf, len, "%d", k == (groove ? D->grv_src : D->snd_src));
+    if (groove) return snprintf(buf, len, "%.30s  %c", D->kits[k].name, 'A' + D->sim_grv_pat[i]);
+    return snprintf(buf, len, "%.31s", D->kits[k].name);
+}
+
+static int ex_status(db_t *D, char *buf, int len) {
+    if (D->ex_info[0]) return snprintf(buf, len, "%s", D->ex_info);
+    int c = __atomic_load_n(&D->ix_count, __ATOMIC_ACQUIRE);
+    if (c < D->ix_n) return snprintf(buf, len, "READING %d / %d PRESETS", c, D->ix_n);
+    return snprintf(buf, len, "%d PRESETS  -  UNDO: %d", D->nkits, D->nundo);
 }
 
 /* ---- parameters ------------------------------------------------------------------------------------------------ */
@@ -472,12 +505,14 @@ static void set_state(db_t *D, const char *s) {
         for (int v = 0; v < NV; v++) D->pv[VNOTE(v)] = (float)(BASE_NOTE[(int)D->pv[P_BASE_NOTE] % 5] + v);
     D->pv[P_PAT_LEN] = (float)D->wp.p[sel_pattern(D)].len;
     D->sq_queued = sel_pattern(D);
+    D->sim_dirty = 1;
     /* the kit's number, or where that name is now (files added or removed since) */
     if (kit >= 0 && kit < D->nkits && (!kitname[0] || !strcmp(D->kits[kit].name, kitname))) D->pv[P_KIT] = (float)kit;
     else if (kitname[0]) {
         for (int k = 0; k < D->nkits; k++)
             if (!strcmp(D->kits[k].name, kitname)) { D->pv[P_KIT] = (float)k; break; }
     }
+    D->snd_src = D->grv_src = (int)D->pv[P_KIT];
 }
 
 static int get_state(const db_t *D, char *buf, int len) {
@@ -501,6 +536,17 @@ static void e_set_param(void *inst, const char *key, const char *val) {
     if (t == 0) {   /* a tap on the grid */
         apply_kit(D);
         tile_tap(D, tk, tn);
+        return;
+    }
+    if (key[0] == 's' && (key[1] == 's' || key[1] == 'g') && key[2] == '_') {   /* a similar sound / groove */
+        int n = atoi(key + 3);
+        if (key[3] < '1' || key[3] > '9' || n < 1 || n > NSIM) return;
+        apply_kit(D);
+        if (ex_take(D, key[1] == 'g', n - 1)) {
+            if (key[1] == 'g') { D->changed |= 8; D->changed_p = 0; }
+            else { D->changed |= 32; D->changed_m = 0; }
+            if (!(D->tp_seen && D->tp_playing) && (int)D->pv[P_PREVIEW]) D->seq_start = 1;   /* heard at once */
+        }
         return;
     }
     int i = find_key(key);
@@ -529,15 +575,34 @@ static void e_set_param(void *inst, const char *key, const char *val) {
             if (kit_save_user(D, s)) snprintf(D->status, sizeof D->status, "U%02d: CAN'T WRITE TO THE CARD", s);
             else {
                 D->pv[P_KIT] = (float)(D->user0 + s - 1);
+                ex_kit_changed(D, D->user0 + s - 1);
                 snprintf(D->status, sizeof D->status, "SAVED TO U%02d", s);
             }
         }
         return;
     }
+    if (i == P_SEARCH || i == P_MUT_SOUND || i == P_MUT_GROOVE || i == P_UNDO) {
+        if (atof(val) < 0.5f) return;
+        if (i == P_SEARCH) { ex_find(D); return; }
+        if (i == P_UNDO) {
+            if (!ex_undo(D)) { snprintf(D->ex_info, sizeof D->ex_info, "NOTHING TO UNDO"); return; }
+            D->changed |= 8 | 32;
+            D->changed_m = D->changed_p = 0;
+            D->sq_queued = sel_pattern(D);
+        } else {
+            ex_push(D);
+            if (i == P_MUT_SOUND) { ex_mutate_sound(D); D->changed |= 32; D->changed_m = 0; }
+            else ex_mutate_groove(D);
+            ex_find(D);   /* what is near the mutation */
+        }
+        D->ex_info[0] = 0;
+        if (!(D->tp_seen && D->tp_playing) && (int)D->pv[P_PREVIEW]) D->seq_start = 1;
+        return;
+    }
     if (i == P_PREVIEW_PLAY || i == P_FAV || i == P_DRUM_PLAY || i == P_DRUM_TAKE) {
         if (atof(val) < 0.5f) return;   /* the button's release */
         if (i == P_PREVIEW_PLAY) D->seq_start = 1;
-        else if (i == P_FAV) kit_favorite(D);
+        else if (i == P_FAV) { if (!kit_favorite(D)) ex_kit_changed(D, D->nkits - 1); }
         else if (i == P_DRUM_PLAY) D->aud_drum = D->dcur >= 0;
         else if (D->dcur >= 0) {   /* TAKE: the sound into the chosen voice (its choke group stays) */
             int v = (int)D->pv[P_DRUM_VOICE];
@@ -605,6 +670,9 @@ static int e_get_param(void *inst, const char *key, char *buf, int len) {
     db_t *D = inst;
     int tk, tn, t = tile_key(key, &tk, &tn);
     if (t >= 0) return tile_get(D, tk, tn, t, buf, len);
+    if (key[0] == 's' && (key[1] == 's' || key[1] == 'g') && key[2] == '_' && key[3] >= '1' && key[3] <= '9')
+        return ex_tile(D, key[1] == 'g', atoi(key + 3) - 1, strstr(key, "_on") != NULL, buf, len);
+    if (!strcmp(key, "ex_info")) return ex_status(D, buf, len);
     if (!strcmp(key, "state")) {
         apply_kit(D);
         return get_state(D, buf, len);
@@ -665,12 +733,14 @@ static void *e_create(const char *dir) {
     kits_load(D);
     if (!D->kits) { free(D); return NULL; }
     D->wp = D->kits[0].ps;   /* the first kit's patterns, with its sounds (the defaults) */
+    ex_start(D);
     return D;
 }
 
 static void e_destroy(void *inst) {
     db_t *D = inst;
     if (!D) return;
+    ex_stop(D);
     kits_free(D);
     free(D);
 }
@@ -690,7 +760,17 @@ int mpc_engine_changed(void *inst, char *key, int len) {
         D->changed &= ~4;
         D->changed_k = 0;
     }
-    if (D->changed & 8) { D->changed &= ~8; return snprintf(key, len, "pattern") > 0; }   /* a chain, pad 16 */
+    if (D->changed & 8) {   /* a chain, pad 16, a groove taken: PATTERN, LENGTH, SWING */
+        static const char *const K[3] = {"pattern", "pat_len", "swing"};
+        if (D->changed_p < 3) return snprintf(key, len, "%s", K[D->changed_p++]) > 0;
+        D->changed &= ~8;
+        D->changed_p = 0;
+    }
+    if (D->changed & 32) {   /* a sound taken, mutated or undone: every voice control */
+        if (D->changed_m < NV * NVP) return snprintf(key, len, "%s", PDEF[VK(0, 0) + D->changed_m++].key) > 0;
+        D->changed &= ~32;
+        D->changed_m = 0;
+    }
     if (D->changed & 16) {   /* BASE NOTE set the eight notes */
         if (D->changed_n < NV) return snprintf(key, len, "v%d_note", ++D->changed_n) > 0;
         D->changed &= ~16;

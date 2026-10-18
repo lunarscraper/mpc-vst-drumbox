@@ -17,7 +17,7 @@ def button(w, h, fill, edge, name):
 
 
 os.makedirs(OUT, exist_ok=True)
-for w, h in ((220, 70), (180, 64)):
+for w, h in ((220, 70), (180, 64), (150, 56), (120, 56)):
     button(w, h, "#2c2f38", "#4a4f5b", "btn_%dx%d.png" % (w, h))
     button(w, h, "#ff8a3d", "#ffc08f", "btn_%dx%d_on.png" % (w, h))
 print("images:", sorted(os.listdir(OUT)))

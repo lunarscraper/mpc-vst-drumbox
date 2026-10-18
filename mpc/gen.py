@@ -16,6 +16,40 @@ import re
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 NV = 8
+# the eight lanes' colours (sequencer rows, voice pages): kick red, then round the colour wheel
+LANES = ["ff5a4e", "ff9f2e", "f2c934", "7ed957", "2ec4b6", "3fa7ff", "9b7bff", "ff6fb5"]
+BG = "14161c"
+
+
+def mix(a, b, t):   # colour a over b, t of a
+    ca, cb = [int(a[i:i + 2], 16) for i in (0, 2, 4)], [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return "%02x%02x%02x" % tuple(round(x * t + y * (1 - t)) for x, y in zip(ca, cb))
+
+
+def svg_box(w, h, fill, stroke, sw, rx, extra=""):
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">'
+            '<rect x="%g" y="%g" width="%g" height="%g" rx="%g" fill="#%s" stroke="#%s" stroke-width="%g"/>%s</svg>\n'
+            % (w, h, w, h, sw / 2, sw / 2, w - sw, h - sw, rx, fill, stroke, sw, extra))
+
+
+def lane_art():
+    """images/lane<v>_*.svg: the sequencer's step tiles and mute tile (dark tint off, the colour lit) and the voice
+    pages' panels (a tinted panel, a border and a bar in the colour)."""
+    out = os.path.join(ROOT, "images")
+    os.makedirs(out, exist_ok=True)
+    files = {}
+    for v, c in enumerate(LANES, 1):
+        files["lane%d_step.svg" % v] = svg_box(66, 44, mix(c, BG, 0.16), mix(c, BG, 0.45), 1.5, 5)
+        files["lane%d_step_on.svg" % v] = svg_box(66, 44, mix(c, "000000", 0.82), mix(c, "ffffff", 0.7), 2, 5)
+        files["lane%d_mute.svg" % v] = svg_box(112, 44, mix(c, BG, 0.10), mix(c, BG, 0.35), 1.5, 5)
+        files["lane%d_mute_on.svg" % v] = svg_box(112, 44, mix(c, "000000", 0.82), mix(c, "ffffff", 0.7), 2, 5)
+        for w, h in ((470, 604), (380, 604), (394, 604)):
+            bar = '<rect x="10" y="3" width="%d" height="5" rx="2.5" fill="#%s"/>' % (w - 20, c)
+            files["lane%d_panel_%dx%d.svg" % (v, w, h)] = svg_box(w, h, mix(c, BG, 0.07), mix(c, BG, 0.75), 2, 10, bar)
+    for name, text in files.items():
+        path = os.path.join(out, name)
+        if not os.path.exists(path) or open(path).read() != text:
+            open(path, "w").write(text)
 NOTE_NAMES = ["%s%d" % (("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")[n % 12], n // 12 - 2)
               for n in range(128)]   # MPC's names: 60 = C3, 36 = C1
 
@@ -159,10 +193,10 @@ def params():
     P.append(dict(key="chain", name="CHAIN", options=["OFF", "ON"], default="ON"))
     P.append(dict(key="swing", name="SWING", min=0, max=100, default=0, dynamic_display=True))
     for i in range(1, NV * 16 + 1):   # the grid: voice (row) x step (column); a tap: off -> on -> accent -> off
-        P.append(dict(key="st_%d" % i, name="V%d STEP %d" % ((i - 1) // 16 + 1, (i - 1) % 16 + 1), min=0, max=1,
+        P.append(dict(key="st%d_%d" % ((i - 1) // 16 + 1, (i - 1) % 16 + 1), name="V%d STEP %d" % ((i - 1) // 16 + 1, (i - 1) % 16 + 1), min=0, max=1,
                       display="string", type="slot"))
     for v in range(1, NV + 1):        # lit = plays; a tap mutes / unmutes
-        P.append(dict(key="mute_%d" % v, name="V%d MUTE" % v, min=0, max=1, display="string", type="slot"))
+        P.append(dict(key="mute%d_1" % v, name="V%d MUTE" % v, min=0, max=1, display="string", type="slot"))
     for i in range(1, 17):            # the step playing
         P.append(dict(key="ph_%d" % i, name="STEP %d LIGHT" % i, min=0, max=1, display="string", type="slot"))
     for v in range(1, NV + 1):        # the MIDI note that plays the voice (V1 NOTE on MASTER sets all eight)
@@ -173,6 +207,21 @@ def params():
     P.append(dict(key="pat_len_next", name="LENGTH +", momentary=True, step_of="pat_len", step_delta=1))
     P.append(dict(key="swing_prev", name="SWING -", momentary=True, step_of="swing", step_delta=-5))
     P.append(dict(key="swing_next", name="SWING +", momentary=True, step_of="swing", step_delta=5))
+    # 0.4.0: EXPLORE (similar sounds and grooves, MUTATE, UNDO)
+    for i in range(1, 7):
+        P.append(dict(key="ss_%d" % i, name="SIMILAR SOUND %d" % i, min=0, max=1, display="string", type="slot"))
+    for i in range(1, 7):
+        P.append(dict(key="sg_%d" % i, name="SIMILAR GROOVE %d" % i, min=0, max=1, display="string", type="slot"))
+    P.append(dict(key="search", name="SEARCH HERE", momentary=True))
+    P.append(dict(key="mut_target", name="MUTATE VOICES", options=["ALL"] + ["V%d" % v for v in range(1, NV + 1)],
+                  default="ALL"))
+    P.append(dict(key="mut_amt", name="AMOUNT", min=5, max=100, default=25, display="int"))
+    P.append(dict(key="mut_amt_prev", name="AMOUNT -", momentary=True, step_of="mut_amt", step_delta=-5))
+    P.append(dict(key="mut_amt_next", name="AMOUNT +", momentary=True, step_of="mut_amt", step_delta=5))
+    P.append(dict(key="mut_sound", name="MUTATE SOUND", momentary=True))
+    P.append(dict(key="mut_groove", name="MUTATE GROOVE", momentary=True))
+    P.append(dict(key="undo", name="UNDO", momentary=True))
+    P.append(dict(key="ex_info", name="EXPLORE INFO", min=0, max=0, display="string", type="readout"))
     return P
 
 
@@ -234,6 +283,8 @@ focus_ring=1
 
 BTN_L = "img=images/btn_220x70.png img_on=images/btn_220x70_on.png"   # big touch buttons (mpc/art.py)
 BTN_S = "img=images/btn_180x64.png img_on=images/btn_180x64_on.png"
+BTN_M = "img=images/btn_150x56.png img_on=images/btn_150x56_on.png"
+BTN_U = "img=images/btn_120x56.png img_on=images/btn_120x56_on.png"
 
 
 def layout():
@@ -266,10 +317,30 @@ def layout():
     L.append('enum_h cx=826 cy=146 label="CHAIN" key=chain sw=70 sh=46')
     L.append('stepper cx=1110 cy=146 w=240 h=46 label="SWING" key=swing')
     L.append("list x=140 y=204 w=1124 h=18 key=ph cols=16 rows=1 th=18 gap=4")
-    L.append("list x=16 y=228 w=112 h=380 key=mute cols=1 rows=8 th=44 gap=4 tsize=20")
-    L.append("list x=140 y=228 w=1124 h=380 key=st cols=16 rows=8 th=44 gap=4 tsize=20 talign=center")
-    L.append('enum_h cx=640 cy=668 label="" key=pattern sw=92 sh=52')
+    for v in range(1, NV + 1):   # a lane per voice, in its colour (lane_art)
+        y = 228 + 48 * (v - 1)
+        L.append("list x=16 y=%d w=112 h=44 key=mute%d cols=1 rows=1 th=44 gap=4 tsize=20 talign=center tweight=bold "
+                 "tcolor=ffffff img=images/lane%d_mute.svg img_on=images/lane%d_mute_on.svg" % (y, v, v, v))
+        L.append("list x=140 y=%d w=1124 h=44 key=st%d cols=16 rows=1 th=44 gap=4 tsize=20 talign=center tweight=bold "
+                 "tcolor=ffffff img=images/lane%d_step.svg img_on=images/lane%d_step_on.svg" % (y, v, v, v))
+    L.append('enum_h cx=496 cy=668 label="" key=pattern sw=76 sh=56')
+    L.append('button cx=1060 cy=668 w=150 h=56 label="MUTATE" key=mut_groove %s' % BTN_M)
+    L.append('button cx=1196 cy=668 w=120 h=56 label="UNDO" key=undo %s' % BTN_U)
     L.append('qlinks "PATTERN" = swing,pat_len')
+    # EXPLORE: presets with a similar sound / groove (a tap takes it), MUTATE, UNDO
+    L.append("[tab EXPLORE]")
+    L.append('frame x=16 y=98 w=616 h=420 title="SIMILAR SOUND (TAP: TAKE THE SOUNDS)"')
+    L.append("list x=32 y=146 w=584 h=356 key=ss cols=1 rows=6 th=54 gap=6 tsize=20")
+    L.append('frame x=648 y=98 w=616 h=420 title="SIMILAR GROOVE (TAP: TAKE THE PATTERNS)"')
+    L.append("list x=664 y=146 w=584 h=356 key=sg cols=1 rows=6 th=54 gap=6 tsize=20")
+    L.append('button cx=136 cy=578 w=220 h=70 label="SEARCH HERE" key=search %s' % BTN_L)
+    L.append('enum_h cx=596 cy=578 label="MUTATE VOICES" key=mut_target sw=60 sh=48')
+    L.append('stepper cx=1110 cy=578 w=240 h=46 label="AMOUNT" key=mut_amt')
+    L.append('button cx=136 cy=666 w=220 h=70 label="UNDO" key=undo %s' % BTN_L)
+    L.append('button cx=380 cy=666 w=220 h=70 label="MUTATE SOUND" key=mut_sound %s' % BTN_L)
+    L.append('button cx=624 cy=666 w=220 h=70 label="MUTATE GROOVE" key=mut_groove %s' % BTN_L)
+    L.append("readout cx=1010 cy=666 w=480 h=50 key=ex_info")
+    L.append('qlinks "EXPLORE" = mut_amt')
     # NOTES: a MIDI note per voice, for the Force's own sequencer (or pads laid out differently)
     L.append("[tab NOTES]")
     L.append('frame x=16 y=98 w=1248 h=604 title="THE NOTE THAT PLAYS EACH VOICE"')
@@ -290,27 +361,28 @@ def layout():
     for v in range(1, NV + 1):
         k = lambda s: "v%d_%s" % (v, s)
         L.append("[tab V%d]" % v)
-        L.append('frame x=8 y=98 w=470 h=604 title="V%d  OSCILLATOR"' % v)
+        ink = LANES[v - 1]
+        L.append('frame x=8 y=98 w=470 h=604 title="V%d  OSCILLATOR" img=images/lane%d_panel_470x604.svg' % (v, v))
         L.append('enum_h cx=243 cy=192 label="WAVE" key=%s sw=120 sh=44' % k("osc_wave"))
         for i, (s, n) in enumerate((("osc_freq", "FREQ"), ("osc_atk", "ATTACK"), ("osc_dcy", "DECAY"), ("osc_vel", "VEL"))):
-            L.append('knob cx=%d cy=322 r=40 label="%s" key=%s bw=108' % (69 + 116 * i, n, k(s)))
+            L.append('knob cx=%d cy=322 r=40 label="%s" key=%s bw=108 ink=%s' % (69 + 116 * i, n, k(s), ink))
         L.append('enum_h cx=243 cy=460 label="PITCH MOD" key=%s sw=120 sh=44' % k("mod_mode"))
         for i, (s, n) in enumerate((("mod_amt", "AMOUNT"), ("mod_rate", "RATE"), ("mod_vel", "VEL"))):
-            L.append('knob cx=%d cy=600 r=40 label="%s" key=%s bw=108' % (127 + 116 * i, n, k(s)))
-        L.append('frame x=488 y=98 w=380 h=604 title="NOISE"')
+            L.append('knob cx=%d cy=600 r=40 label="%s" key=%s bw=108 ink=%s' % (127 + 116 * i, n, k(s), ink))
+        L.append('frame x=488 y=98 w=380 h=604 title="NOISE" img=images/lane%d_panel_380x604.svg' % v)
         L.append('enum_h cx=618 cy=192 label="FILTER" key=%s sw=80 sh=44' % k("n_filter"))
         L.append('enum_h cx=800 cy=192 label="STEREO" key=%s sw=56 sh=44' % k("n_stereo"))
         for i, (s, n) in enumerate((("n_freq", "FREQ"), ("n_q", "Q"), ("n_vel", "VEL"))):
-            L.append('knob cx=%d cy=322 r=40 label="%s" key=%s bw=108' % (558 + 120 * i, n, k(s)))
+            L.append('knob cx=%d cy=322 r=40 label="%s" key=%s bw=108 ink=%s' % (558 + 120 * i, n, k(s), ink))
         L.append('enum_h cx=678 cy=460 label="ENVELOPE" key=%s sw=100 sh=44' % k("n_env"))
         for i, (s, n) in enumerate((("n_atk", "ATTACK"), ("n_dcy", "DECAY"))):
-            L.append('knob cx=%d cy=600 r=40 label="%s" key=%s bw=108' % (618 + 120 * i, n, k(s)))
-        L.append('frame x=878 y=98 w=394 h=604 title="OUT"')
+            L.append('knob cx=%d cy=600 r=40 label="%s" key=%s bw=108 ink=%s' % (618 + 120 * i, n, k(s), ink))
+        L.append('frame x=878 y=98 w=394 h=604 title="OUT" img=images/lane%d_panel_394x604.svg' % v)
         L.append('enum_h cx=1075 cy=192 label="CHOKE" key=%s sw=80 sh=44' % k("choke"))
         for i, (s, n) in enumerate((("mix", "MIX"), ("dist", "DIST"), ("level", "LEVEL"))):
-            L.append('knob cx=%d cy=322 r=40 label="%s" key=%s bw=108' % (950 + 125 * i, n, k(s)))
+            L.append('knob cx=%d cy=322 r=40 label="%s" key=%s bw=108 ink=%s' % (950 + 125 * i, n, k(s), ink))
         for i, (s, n) in enumerate((("eq_freq", "EQ FREQ"), ("eq_gain", "EQ GAIN"), ("pan", "PAN"))):
-            L.append('knob cx=%d cy=520 r=40 label="%s" key=%s bw=108' % (950 + 125 * i, n, k(s)))
+            L.append('knob cx=%d cy=520 r=40 label="%s" key=%s bw=108 ink=%s' % (950 + 125 * i, n, k(s), ink))
         L.append('qlinks "V%d OSC" = %s' % (v, ",".join(k(s) for s in (
             "osc_freq", "osc_atk", "osc_dcy", "osc_vel", "mod_amt", "mod_rate", "mod_vel"))))
         L.append('qlinks "V%d NOISE" = %s' % (v, ",".join(k(s) for s in ("n_freq", "n_q", "n_vel", "n_atk", "n_dcy"))))
@@ -359,6 +431,7 @@ def main():
     open(os.path.join(ROOT, "src", "params_def.h"), "w").write(params_def(P))
     open(os.path.join(ROOT, "layout.conf"), "w").write(layout())
     open(os.path.join(ROOT, "src", "builtin_kits.h"), "w").write(builtin_kits())
+    lane_art()
     print("%d parameters, %d built-in kits" % (len(P), len(BUILTIN)))
 
 

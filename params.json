@@ -1896,7 +1896,7 @@
    "dynamic_display": true
   },
   {
-   "key": "st_1",
+   "key": "st1_1",
    "name": "V1 STEP 1",
    "min": 0,
    "max": 1,
@@ -1904,7 +1904,7 @@
    "type": "slot"
   },
   {
-   "key": "st_2",
+   "key": "st1_2",
    "name": "V1 STEP 2",
    "min": 0,
    "max": 1,
@@ -1912,7 +1912,7 @@
    "type": "slot"
   },
   {
-   "key": "st_3",
+   "key": "st1_3",
    "name": "V1 STEP 3",
    "min": 0,
    "max": 1,
@@ -1920,7 +1920,7 @@
    "type": "slot"
   },
   {
-   "key": "st_4",
+   "key": "st1_4",
    "name": "V1 STEP 4",
    "min": 0,
    "max": 1,
@@ -1928,7 +1928,7 @@
    "type": "slot"
   },
   {
-   "key": "st_5",
+   "key": "st1_5",
    "name": "V1 STEP 5",
    "min": 0,
    "max": 1,
@@ -1936,7 +1936,7 @@
    "type": "slot"
   },
   {
-   "key": "st_6",
+   "key": "st1_6",
    "name": "V1 STEP 6",
    "min": 0,
    "max": 1,
@@ -1944,7 +1944,7 @@
    "type": "slot"
   },
   {
-   "key": "st_7",
+   "key": "st1_7",
    "name": "V1 STEP 7",
    "min": 0,
    "max": 1,
@@ -1952,7 +1952,7 @@
    "type": "slot"
   },
   {
-   "key": "st_8",
+   "key": "st1_8",
    "name": "V1 STEP 8",
    "min": 0,
    "max": 1,
@@ -1960,7 +1960,7 @@
    "type": "slot"
   },
   {
-   "key": "st_9",
+   "key": "st1_9",
    "name": "V1 STEP 9",
    "min": 0,
    "max": 1,
@@ -1968,7 +1968,7 @@
    "type": "slot"
   },
   {
-   "key": "st_10",
+   "key": "st1_10",
    "name": "V1 STEP 10",
    "min": 0,
    "max": 1,
@@ -1976,7 +1976,7 @@
    "type": "slot"
   },
   {
-   "key": "st_11",
+   "key": "st1_11",
    "name": "V1 STEP 11",
    "min": 0,
    "max": 1,
@@ -1984,7 +1984,7 @@
    "type": "slot"
   },
   {
-   "key": "st_12",
+   "key": "st1_12",
    "name": "V1 STEP 12",
    "min": 0,
    "max": 1,
@@ -1992,7 +1992,7 @@
    "type": "slot"
   },
   {
-   "key": "st_13",
+   "key": "st1_13",
    "name": "V1 STEP 13",
    "min": 0,
    "max": 1,
@@ -2000,7 +2000,7 @@
    "type": "slot"
   },
   {
-   "key": "st_14",
+   "key": "st1_14",
    "name": "V1 STEP 14",
    "min": 0,
    "max": 1,
@@ -2008,7 +2008,7 @@
    "type": "slot"
   },
   {
-   "key": "st_15",
+   "key": "st1_15",
    "name": "V1 STEP 15",
    "min": 0,
    "max": 1,
@@ -2016,7 +2016,7 @@
    "type": "slot"
   },
   {
-   "key": "st_16",
+   "key": "st1_16",
    "name": "V1 STEP 16",
    "min": 0,
    "max": 1,
@@ -2024,7 +2024,7 @@
    "type": "slot"
   },
   {
-   "key": "st_17",
+   "key": "st2_1",
    "name": "V2 STEP 1",
    "min": 0,
    "max": 1,
@@ -2032,7 +2032,7 @@
    "type": "slot"
   },
   {
-   "key": "st_18",
+   "key": "st2_2",
    "name": "V2 STEP 2",
    "min": 0,
    "max": 1,
@@ -2040,7 +2040,7 @@
    "type": "slot"
   },
   {
-   "key": "st_19",
+   "key": "st2_3",
    "name": "V2 STEP 3",
    "min": 0,
    "max": 1,
@@ -2048,7 +2048,7 @@
    "type": "slot"
   },
   {
-   "key": "st_20",
+   "key": "st2_4",
    "name": "V2 STEP 4",
    "min": 0,
    "max": 1,
@@ -2056,7 +2056,7 @@
    "type": "slot"
   },
   {
-   "key": "st_21",
+   "key": "st2_5",
    "name": "V2 STEP 5",
    "min": 0,
    "max": 1,
@@ -2064,7 +2064,7 @@
    "type": "slot"
   },
   {
-   "key": "st_22",
+   "key": "st2_6",
    "name": "V2 STEP 6",
    "min": 0,
    "max": 1,
@@ -2072,7 +2072,7 @@
    "type": "slot"
   },
   {
-   "key": "st_23",
+   "key": "st2_7",
    "name": "V2 STEP 7",
    "min": 0,
    "max": 1,
@@ -2080,7 +2080,7 @@
    "type": "slot"
   },
   {
-   "key": "st_24",
+   "key": "st2_8",
    "name": "V2 STEP 8",
    "min": 0,
    "max": 1,
@@ -2088,7 +2088,7 @@
    "type": "slot"
   },
   {
-   "key": "st_25",
+   "key": "st2_9",
    "name": "V2 STEP 9",
    "min": 0,
    "max": 1,
@@ -2096,7 +2096,7 @@
    "type": "slot"
   },
   {
-   "key": "st_26",
+   "key": "st2_10",
    "name": "V2 STEP 10",
    "min": 0,
    "max": 1,
@@ -2104,7 +2104,7 @@
    "type": "slot"
   },
   {
-   "key": "st_27",
+   "key": "st2_11",
    "name": "V2 STEP 11",
    "min": 0,
    "max": 1,
@@ -2112,7 +2112,7 @@
    "type": "slot"
   },
   {
-   "key": "st_28",
+   "key": "st2_12",
    "name": "V2 STEP 12",
    "min": 0,
    "max": 1,
@@ -2120,7 +2120,7 @@
    "type": "slot"
   },
   {
-   "key": "st_29",
+   "key": "st2_13",
    "name": "V2 STEP 13",
    "min": 0,
    "max": 1,
@@ -2128,7 +2128,7 @@
    "type": "slot"
   },
   {
-   "key": "st_30",
+   "key": "st2_14",
    "name": "V2 STEP 14",
    "min": 0,
    "max": 1,
@@ -2136,7 +2136,7 @@
    "type": "slot"
   },
   {
-   "key": "st_31",
+   "key": "st2_15",
    "name": "V2 STEP 15",
    "min": 0,
    "max": 1,
@@ -2144,7 +2144,7 @@
    "type": "slot"
   },
   {
-   "key": "st_32",
+   "key": "st2_16",
    "name": "V2 STEP 16",
    "min": 0,
    "max": 1,
@@ -2152,7 +2152,7 @@
    "type": "slot"
   },
   {
-   "key": "st_33",
+   "key": "st3_1",
    "name": "V3 STEP 1",
    "min": 0,
    "max": 1,
@@ -2160,7 +2160,7 @@
    "type": "slot"
   },
   {
-   "key": "st_34",
+   "key": "st3_2",
    "name": "V3 STEP 2",
    "min": 0,
    "max": 1,
@@ -2168,7 +2168,7 @@
    "type": "slot"
   },
   {
-   "key": "st_35",
+   "key": "st3_3",
    "name": "V3 STEP 3",
    "min": 0,
    "max": 1,
@@ -2176,7 +2176,7 @@
    "type": "slot"
   },
   {
-   "key": "st_36",
+   "key": "st3_4",
    "name": "V3 STEP 4",
    "min": 0,
    "max": 1,
@@ -2184,7 +2184,7 @@
    "type": "slot"
   },
   {
-   "key": "st_37",
+   "key": "st3_5",
    "name": "V3 STEP 5",
    "min": 0,
    "max": 1,
@@ -2192,7 +2192,7 @@
    "type": "slot"
   },
   {
-   "key": "st_38",
+   "key": "st3_6",
    "name": "V3 STEP 6",
    "min": 0,
    "max": 1,
@@ -2200,7 +2200,7 @@
    "type": "slot"
   },
   {
-   "key": "st_39",
+   "key": "st3_7",
    "name": "V3 STEP 7",
    "min": 0,
    "max": 1,
@@ -2208,7 +2208,7 @@
    "type": "slot"
   },
   {
-   "key": "st_40",
+   "key": "st3_8",
    "name": "V3 STEP 8",
    "min": 0,
    "max": 1,
@@ -2216,7 +2216,7 @@
    "type": "slot"
   },
   {
-   "key": "st_41",
+   "key": "st3_9",
    "name": "V3 STEP 9",
    "min": 0,
    "max": 1,
@@ -2224,7 +2224,7 @@
    "type": "slot"
   },
   {
-   "key": "st_42",
+   "key": "st3_10",
    "name": "V3 STEP 10",
    "min": 0,
    "max": 1,
@@ -2232,7 +2232,7 @@
    "type": "slot"
   },
   {
-   "key": "st_43",
+   "key": "st3_11",
    "name": "V3 STEP 11",
    "min": 0,
    "max": 1,
@@ -2240,7 +2240,7 @@
    "type": "slot"
   },
   {
-   "key": "st_44",
+   "key": "st3_12",
    "name": "V3 STEP 12",
    "min": 0,
    "max": 1,
@@ -2248,7 +2248,7 @@
    "type": "slot"
   },
   {
-   "key": "st_45",
+   "key": "st3_13",
    "name": "V3 STEP 13",
    "min": 0,
    "max": 1,
@@ -2256,7 +2256,7 @@
    "type": "slot"
   },
   {
-   "key": "st_46",
+   "key": "st3_14",
    "name": "V3 STEP 14",
    "min": 0,
    "max": 1,
@@ -2264,7 +2264,7 @@
    "type": "slot"
   },
   {
-   "key": "st_47",
+   "key": "st3_15",
    "name": "V3 STEP 15",
    "min": 0,
    "max": 1,
@@ -2272,7 +2272,7 @@
    "type": "slot"
   },
   {
-   "key": "st_48",
+   "key": "st3_16",
    "name": "V3 STEP 16",
    "min": 0,
    "max": 1,
@@ -2280,7 +2280,7 @@
    "type": "slot"
   },
   {
-   "key": "st_49",
+   "key": "st4_1",
    "name": "V4 STEP 1",
    "min": 0,
    "max": 1,
@@ -2288,7 +2288,7 @@
    "type": "slot"
   },
   {
-   "key": "st_50",
+   "key": "st4_2",
    "name": "V4 STEP 2",
    "min": 0,
    "max": 1,
@@ -2296,7 +2296,7 @@
    "type": "slot"
   },
   {
-   "key": "st_51",
+   "key": "st4_3",
    "name": "V4 STEP 3",
    "min": 0,
    "max": 1,
@@ -2304,7 +2304,7 @@
    "type": "slot"
   },
   {
-   "key": "st_52",
+   "key": "st4_4",
    "name": "V4 STEP 4",
    "min": 0,
    "max": 1,
@@ -2312,7 +2312,7 @@
    "type": "slot"
   },
   {
-   "key": "st_53",
+   "key": "st4_5",
    "name": "V4 STEP 5",
    "min": 0,
    "max": 1,
@@ -2320,7 +2320,7 @@
    "type": "slot"
   },
   {
-   "key": "st_54",
+   "key": "st4_6",
    "name": "V4 STEP 6",
    "min": 0,
    "max": 1,
@@ -2328,7 +2328,7 @@
    "type": "slot"
   },
   {
-   "key": "st_55",
+   "key": "st4_7",
    "name": "V4 STEP 7",
    "min": 0,
    "max": 1,
@@ -2336,7 +2336,7 @@
    "type": "slot"
   },
   {
-   "key": "st_56",
+   "key": "st4_8",
    "name": "V4 STEP 8",
    "min": 0,
    "max": 1,
@@ -2344,7 +2344,7 @@
    "type": "slot"
   },
   {
-   "key": "st_57",
+   "key": "st4_9",
    "name": "V4 STEP 9",
    "min": 0,
    "max": 1,
@@ -2352,7 +2352,7 @@
    "type": "slot"
   },
   {
-   "key": "st_58",
+   "key": "st4_10",
    "name": "V4 STEP 10",
    "min": 0,
    "max": 1,
@@ -2360,7 +2360,7 @@
    "type": "slot"
   },
   {
-   "key": "st_59",
+   "key": "st4_11",
    "name": "V4 STEP 11",
    "min": 0,
    "max": 1,
@@ -2368,7 +2368,7 @@
    "type": "slot"
   },
   {
-   "key": "st_60",
+   "key": "st4_12",
    "name": "V4 STEP 12",
    "min": 0,
    "max": 1,
@@ -2376,7 +2376,7 @@
    "type": "slot"
   },
   {
-   "key": "st_61",
+   "key": "st4_13",
    "name": "V4 STEP 13",
    "min": 0,
    "max": 1,
@@ -2384,7 +2384,7 @@
    "type": "slot"
   },
   {
-   "key": "st_62",
+   "key": "st4_14",
    "name": "V4 STEP 14",
    "min": 0,
    "max": 1,
@@ -2392,7 +2392,7 @@
    "type": "slot"
   },
   {
-   "key": "st_63",
+   "key": "st4_15",
    "name": "V4 STEP 15",
    "min": 0,
    "max": 1,
@@ -2400,7 +2400,7 @@
    "type": "slot"
   },
   {
-   "key": "st_64",
+   "key": "st4_16",
    "name": "V4 STEP 16",
    "min": 0,
    "max": 1,
@@ -2408,7 +2408,7 @@
    "type": "slot"
   },
   {
-   "key": "st_65",
+   "key": "st5_1",
    "name": "V5 STEP 1",
    "min": 0,
    "max": 1,
@@ -2416,7 +2416,7 @@
    "type": "slot"
   },
   {
-   "key": "st_66",
+   "key": "st5_2",
    "name": "V5 STEP 2",
    "min": 0,
    "max": 1,
@@ -2424,7 +2424,7 @@
    "type": "slot"
   },
   {
-   "key": "st_67",
+   "key": "st5_3",
    "name": "V5 STEP 3",
    "min": 0,
    "max": 1,
@@ -2432,7 +2432,7 @@
    "type": "slot"
   },
   {
-   "key": "st_68",
+   "key": "st5_4",
    "name": "V5 STEP 4",
    "min": 0,
    "max": 1,
@@ -2440,7 +2440,7 @@
    "type": "slot"
   },
   {
-   "key": "st_69",
+   "key": "st5_5",
    "name": "V5 STEP 5",
    "min": 0,
    "max": 1,
@@ -2448,7 +2448,7 @@
    "type": "slot"
   },
   {
-   "key": "st_70",
+   "key": "st5_6",
    "name": "V5 STEP 6",
    "min": 0,
    "max": 1,
@@ -2456,7 +2456,7 @@
    "type": "slot"
   },
   {
-   "key": "st_71",
+   "key": "st5_7",
    "name": "V5 STEP 7",
    "min": 0,
    "max": 1,
@@ -2464,7 +2464,7 @@
    "type": "slot"
   },
   {
-   "key": "st_72",
+   "key": "st5_8",
    "name": "V5 STEP 8",
    "min": 0,
    "max": 1,
@@ -2472,7 +2472,7 @@
    "type": "slot"
   },
   {
-   "key": "st_73",
+   "key": "st5_9",
    "name": "V5 STEP 9",
    "min": 0,
    "max": 1,
@@ -2480,7 +2480,7 @@
    "type": "slot"
   },
   {
-   "key": "st_74",
+   "key": "st5_10",
    "name": "V5 STEP 10",
    "min": 0,
    "max": 1,
@@ -2488,7 +2488,7 @@
    "type": "slot"
   },
   {
-   "key": "st_75",
+   "key": "st5_11",
    "name": "V5 STEP 11",
    "min": 0,
    "max": 1,
@@ -2496,7 +2496,7 @@
    "type": "slot"
   },
   {
-   "key": "st_76",
+   "key": "st5_12",
    "name": "V5 STEP 12",
    "min": 0,
    "max": 1,
@@ -2504,7 +2504,7 @@
    "type": "slot"
   },
   {
-   "key": "st_77",
+   "key": "st5_13",
    "name": "V5 STEP 13",
    "min": 0,
    "max": 1,
@@ -2512,7 +2512,7 @@
    "type": "slot"
   },
   {
-   "key": "st_78",
+   "key": "st5_14",
    "name": "V5 STEP 14",
    "min": 0,
    "max": 1,
@@ -2520,7 +2520,7 @@
    "type": "slot"
   },
   {
-   "key": "st_79",
+   "key": "st5_15",
    "name": "V5 STEP 15",
    "min": 0,
    "max": 1,
@@ -2528,7 +2528,7 @@
    "type": "slot"
   },
   {
-   "key": "st_80",
+   "key": "st5_16",
    "name": "V5 STEP 16",
    "min": 0,
    "max": 1,
@@ -2536,7 +2536,7 @@
    "type": "slot"
   },
   {
-   "key": "st_81",
+   "key": "st6_1",
    "name": "V6 STEP 1",
    "min": 0,
    "max": 1,
@@ -2544,7 +2544,7 @@
    "type": "slot"
   },
   {
-   "key": "st_82",
+   "key": "st6_2",
    "name": "V6 STEP 2",
    "min": 0,
    "max": 1,
@@ -2552,7 +2552,7 @@
    "type": "slot"
   },
   {
-   "key": "st_83",
+   "key": "st6_3",
    "name": "V6 STEP 3",
    "min": 0,
    "max": 1,
@@ -2560,7 +2560,7 @@
    "type": "slot"
   },
   {
-   "key": "st_84",
+   "key": "st6_4",
    "name": "V6 STEP 4",
    "min": 0,
    "max": 1,
@@ -2568,7 +2568,7 @@
    "type": "slot"
   },
   {
-   "key": "st_85",
+   "key": "st6_5",
    "name": "V6 STEP 5",
    "min": 0,
    "max": 1,
@@ -2576,7 +2576,7 @@
    "type": "slot"
   },
   {
-   "key": "st_86",
+   "key": "st6_6",
    "name": "V6 STEP 6",
    "min": 0,
    "max": 1,
@@ -2584,7 +2584,7 @@
    "type": "slot"
   },
   {
-   "key": "st_87",
+   "key": "st6_7",
    "name": "V6 STEP 7",
    "min": 0,
    "max": 1,
@@ -2592,7 +2592,7 @@
    "type": "slot"
   },
   {
-   "key": "st_88",
+   "key": "st6_8",
    "name": "V6 STEP 8",
    "min": 0,
    "max": 1,
@@ -2600,7 +2600,7 @@
    "type": "slot"
   },
   {
-   "key": "st_89",
+   "key": "st6_9",
    "name": "V6 STEP 9",
    "min": 0,
    "max": 1,
@@ -2608,7 +2608,7 @@
    "type": "slot"
   },
   {
-   "key": "st_90",
+   "key": "st6_10",
    "name": "V6 STEP 10",
    "min": 0,
    "max": 1,
@@ -2616,7 +2616,7 @@
    "type": "slot"
   },
   {
-   "key": "st_91",
+   "key": "st6_11",
    "name": "V6 STEP 11",
    "min": 0,
    "max": 1,
@@ -2624,7 +2624,7 @@
    "type": "slot"
   },
   {
-   "key": "st_92",
+   "key": "st6_12",
    "name": "V6 STEP 12",
    "min": 0,
    "max": 1,
@@ -2632,7 +2632,7 @@
    "type": "slot"
   },
   {
-   "key": "st_93",
+   "key": "st6_13",
    "name": "V6 STEP 13",
    "min": 0,
    "max": 1,
@@ -2640,7 +2640,7 @@
    "type": "slot"
   },
   {
-   "key": "st_94",
+   "key": "st6_14",
    "name": "V6 STEP 14",
    "min": 0,
    "max": 1,
@@ -2648,7 +2648,7 @@
    "type": "slot"
   },
   {
-   "key": "st_95",
+   "key": "st6_15",
    "name": "V6 STEP 15",
    "min": 0,
    "max": 1,
@@ -2656,7 +2656,7 @@
    "type": "slot"
   },
   {
-   "key": "st_96",
+   "key": "st6_16",
    "name": "V6 STEP 16",
    "min": 0,
    "max": 1,
@@ -2664,7 +2664,7 @@
    "type": "slot"
   },
   {
-   "key": "st_97",
+   "key": "st7_1",
    "name": "V7 STEP 1",
    "min": 0,
    "max": 1,
@@ -2672,7 +2672,7 @@
    "type": "slot"
   },
   {
-   "key": "st_98",
+   "key": "st7_2",
    "name": "V7 STEP 2",
    "min": 0,
    "max": 1,
@@ -2680,7 +2680,7 @@
    "type": "slot"
   },
   {
-   "key": "st_99",
+   "key": "st7_3",
    "name": "V7 STEP 3",
    "min": 0,
    "max": 1,
@@ -2688,7 +2688,7 @@
    "type": "slot"
   },
   {
-   "key": "st_100",
+   "key": "st7_4",
    "name": "V7 STEP 4",
    "min": 0,
    "max": 1,
@@ -2696,7 +2696,7 @@
    "type": "slot"
   },
   {
-   "key": "st_101",
+   "key": "st7_5",
    "name": "V7 STEP 5",
    "min": 0,
    "max": 1,
@@ -2704,7 +2704,7 @@
    "type": "slot"
   },
   {
-   "key": "st_102",
+   "key": "st7_6",
    "name": "V7 STEP 6",
    "min": 0,
    "max": 1,
@@ -2712,7 +2712,7 @@
    "type": "slot"
   },
   {
-   "key": "st_103",
+   "key": "st7_7",
    "name": "V7 STEP 7",
    "min": 0,
    "max": 1,
@@ -2720,7 +2720,7 @@
    "type": "slot"
   },
   {
-   "key": "st_104",
+   "key": "st7_8",
    "name": "V7 STEP 8",
    "min": 0,
    "max": 1,
@@ -2728,7 +2728,7 @@
    "type": "slot"
   },
   {
-   "key": "st_105",
+   "key": "st7_9",
    "name": "V7 STEP 9",
    "min": 0,
    "max": 1,
@@ -2736,7 +2736,7 @@
    "type": "slot"
   },
   {
-   "key": "st_106",
+   "key": "st7_10",
    "name": "V7 STEP 10",
    "min": 0,
    "max": 1,
@@ -2744,7 +2744,7 @@
    "type": "slot"
   },
   {
-   "key": "st_107",
+   "key": "st7_11",
    "name": "V7 STEP 11",
    "min": 0,
    "max": 1,
@@ -2752,7 +2752,7 @@
    "type": "slot"
   },
   {
-   "key": "st_108",
+   "key": "st7_12",
    "name": "V7 STEP 12",
    "min": 0,
    "max": 1,
@@ -2760,7 +2760,7 @@
    "type": "slot"
   },
   {
-   "key": "st_109",
+   "key": "st7_13",
    "name": "V7 STEP 13",
    "min": 0,
    "max": 1,
@@ -2768,7 +2768,7 @@
    "type": "slot"
   },
   {
-   "key": "st_110",
+   "key": "st7_14",
    "name": "V7 STEP 14",
    "min": 0,
    "max": 1,
@@ -2776,7 +2776,7 @@
    "type": "slot"
   },
   {
-   "key": "st_111",
+   "key": "st7_15",
    "name": "V7 STEP 15",
    "min": 0,
    "max": 1,
@@ -2784,7 +2784,7 @@
    "type": "slot"
   },
   {
-   "key": "st_112",
+   "key": "st7_16",
    "name": "V7 STEP 16",
    "min": 0,
    "max": 1,
@@ -2792,7 +2792,7 @@
    "type": "slot"
   },
   {
-   "key": "st_113",
+   "key": "st8_1",
    "name": "V8 STEP 1",
    "min": 0,
    "max": 1,
@@ -2800,7 +2800,7 @@
    "type": "slot"
   },
   {
-   "key": "st_114",
+   "key": "st8_2",
    "name": "V8 STEP 2",
    "min": 0,
    "max": 1,
@@ -2808,7 +2808,7 @@
    "type": "slot"
   },
   {
-   "key": "st_115",
+   "key": "st8_3",
    "name": "V8 STEP 3",
    "min": 0,
    "max": 1,
@@ -2816,7 +2816,7 @@
    "type": "slot"
   },
   {
-   "key": "st_116",
+   "key": "st8_4",
    "name": "V8 STEP 4",
    "min": 0,
    "max": 1,
@@ -2824,7 +2824,7 @@
    "type": "slot"
   },
   {
-   "key": "st_117",
+   "key": "st8_5",
    "name": "V8 STEP 5",
    "min": 0,
    "max": 1,
@@ -2832,7 +2832,7 @@
    "type": "slot"
   },
   {
-   "key": "st_118",
+   "key": "st8_6",
    "name": "V8 STEP 6",
    "min": 0,
    "max": 1,
@@ -2840,7 +2840,7 @@
    "type": "slot"
   },
   {
-   "key": "st_119",
+   "key": "st8_7",
    "name": "V8 STEP 7",
    "min": 0,
    "max": 1,
@@ -2848,7 +2848,7 @@
    "type": "slot"
   },
   {
-   "key": "st_120",
+   "key": "st8_8",
    "name": "V8 STEP 8",
    "min": 0,
    "max": 1,
@@ -2856,7 +2856,7 @@
    "type": "slot"
   },
   {
-   "key": "st_121",
+   "key": "st8_9",
    "name": "V8 STEP 9",
    "min": 0,
    "max": 1,
@@ -2864,7 +2864,7 @@
    "type": "slot"
   },
   {
-   "key": "st_122",
+   "key": "st8_10",
    "name": "V8 STEP 10",
    "min": 0,
    "max": 1,
@@ -2872,7 +2872,7 @@
    "type": "slot"
   },
   {
-   "key": "st_123",
+   "key": "st8_11",
    "name": "V8 STEP 11",
    "min": 0,
    "max": 1,
@@ -2880,7 +2880,7 @@
    "type": "slot"
   },
   {
-   "key": "st_124",
+   "key": "st8_12",
    "name": "V8 STEP 12",
    "min": 0,
    "max": 1,
@@ -2888,7 +2888,7 @@
    "type": "slot"
   },
   {
-   "key": "st_125",
+   "key": "st8_13",
    "name": "V8 STEP 13",
    "min": 0,
    "max": 1,
@@ -2896,7 +2896,7 @@
    "type": "slot"
   },
   {
-   "key": "st_126",
+   "key": "st8_14",
    "name": "V8 STEP 14",
    "min": 0,
    "max": 1,
@@ -2904,7 +2904,7 @@
    "type": "slot"
   },
   {
-   "key": "st_127",
+   "key": "st8_15",
    "name": "V8 STEP 15",
    "min": 0,
    "max": 1,
@@ -2912,7 +2912,7 @@
    "type": "slot"
   },
   {
-   "key": "st_128",
+   "key": "st8_16",
    "name": "V8 STEP 16",
    "min": 0,
    "max": 1,
@@ -2920,7 +2920,7 @@
    "type": "slot"
   },
   {
-   "key": "mute_1",
+   "key": "mute1_1",
    "name": "V1 MUTE",
    "min": 0,
    "max": 1,
@@ -2928,7 +2928,7 @@
    "type": "slot"
   },
   {
-   "key": "mute_2",
+   "key": "mute2_1",
    "name": "V2 MUTE",
    "min": 0,
    "max": 1,
@@ -2936,7 +2936,7 @@
    "type": "slot"
   },
   {
-   "key": "mute_3",
+   "key": "mute3_1",
    "name": "V3 MUTE",
    "min": 0,
    "max": 1,
@@ -2944,7 +2944,7 @@
    "type": "slot"
   },
   {
-   "key": "mute_4",
+   "key": "mute4_1",
    "name": "V4 MUTE",
    "min": 0,
    "max": 1,
@@ -2952,7 +2952,7 @@
    "type": "slot"
   },
   {
-   "key": "mute_5",
+   "key": "mute5_1",
    "name": "V5 MUTE",
    "min": 0,
    "max": 1,
@@ -2960,7 +2960,7 @@
    "type": "slot"
   },
   {
-   "key": "mute_6",
+   "key": "mute6_1",
    "name": "V6 MUTE",
    "min": 0,
    "max": 1,
@@ -2968,7 +2968,7 @@
    "type": "slot"
   },
   {
-   "key": "mute_7",
+   "key": "mute7_1",
    "name": "V7 MUTE",
    "min": 0,
    "max": 1,
@@ -2976,7 +2976,7 @@
    "type": "slot"
   },
   {
-   "key": "mute_8",
+   "key": "mute8_1",
    "name": "V8 MUTE",
    "min": 0,
    "max": 1,
@@ -4330,6 +4330,168 @@
    "momentary": true,
    "step_of": "swing",
    "step_delta": 5
+  },
+  {
+   "key": "ss_1",
+   "name": "SIMILAR SOUND 1",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "ss_2",
+   "name": "SIMILAR SOUND 2",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "ss_3",
+   "name": "SIMILAR SOUND 3",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "ss_4",
+   "name": "SIMILAR SOUND 4",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "ss_5",
+   "name": "SIMILAR SOUND 5",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "ss_6",
+   "name": "SIMILAR SOUND 6",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "sg_1",
+   "name": "SIMILAR GROOVE 1",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "sg_2",
+   "name": "SIMILAR GROOVE 2",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "sg_3",
+   "name": "SIMILAR GROOVE 3",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "sg_4",
+   "name": "SIMILAR GROOVE 4",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "sg_5",
+   "name": "SIMILAR GROOVE 5",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "sg_6",
+   "name": "SIMILAR GROOVE 6",
+   "min": 0,
+   "max": 1,
+   "display": "string",
+   "type": "slot"
+  },
+  {
+   "key": "search",
+   "name": "SEARCH HERE",
+   "momentary": true
+  },
+  {
+   "key": "mut_target",
+   "name": "MUTATE VOICES",
+   "options": [
+    "ALL",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8"
+   ],
+   "default": "ALL"
+  },
+  {
+   "key": "mut_amt",
+   "name": "AMOUNT",
+   "min": 5,
+   "max": 100,
+   "default": 25,
+   "display": "int"
+  },
+  {
+   "key": "mut_amt_prev",
+   "name": "AMOUNT -",
+   "momentary": true,
+   "step_of": "mut_amt",
+   "step_delta": -5
+  },
+  {
+   "key": "mut_amt_next",
+   "name": "AMOUNT +",
+   "momentary": true,
+   "step_of": "mut_amt",
+   "step_delta": 5
+  },
+  {
+   "key": "mut_sound",
+   "name": "MUTATE SOUND",
+   "momentary": true
+  },
+  {
+   "key": "mut_groove",
+   "name": "MUTATE GROOVE",
+   "momentary": true
+  },
+  {
+   "key": "undo",
+   "name": "UNDO",
+   "momentary": true
+  },
+  {
+   "key": "ex_info",
+   "name": "EXPLORE INFO",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
   }
  ]
 }

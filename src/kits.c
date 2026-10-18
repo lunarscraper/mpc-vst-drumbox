@@ -161,6 +161,12 @@ static int kv_split(char *s, char **key, char **val) {
     return 1;
 }
 
+/* a section header's name, "1: {" or, in Microtonic's newer files, "\"1\": {": its one character, else 0 */
+static int hdr(const char *s) {
+    if (s[0] == '"' && s[1] && s[2] == '"' && s[3] == ':') return (unsigned char)s[1];
+    return s[0] && s[1] == ':' ? (unsigned char)s[0] : 0;
+}
+
 static const char *next_line(const char *t, char *line, size_t cap) {
     size_t n = strcspn(t, "\r\n");
     snprintf(line, cap, "%.*s", (int)(n < cap ? n : cap - 1), t);
@@ -197,15 +203,15 @@ int parse_mtpreset(const char *t, kit_t *k) {
             } else if (!strncmp(s, "Mutes:", 6)) {
                 const char *c = strchr(s, '{');
                 for (int i = 0; c && i < NV; i++) {
-                    c += strspn(c, "{ ,");
+                    c += strspn(c, "{ ,\"");
                     if (!strncmp(c, "On", 2)) ps->mute |= (uint8_t)(1u << i);
                     c += strcspn(c, ",}");
                 }
             } else if (!strncmp(s, "DrumPatches:", 12)) { sec = S_DP; sec_depth = depth; }
             else if (!strncmp(s, "Patterns:", 9)) { sec = S_PAT; sec_depth = depth; }
         } else if (sec == S_DP) {
-            if (depth == sec_depth + 1 && *s >= '1' && *s <= '8' && s[1] == ':') {
-                v = *s - '1';
+            if (depth == sec_depth + 1 && hdr(s) >= '1' && hdr(s) <= '8') {
+                v = hdr(s) - '1';
                 nv++;
                 choke_own = -1;
             } else if (kv && v >= 0 && depth == sec_depth + 2) {
@@ -213,12 +219,12 @@ int parse_mtpreset(const char *t, kit_t *k) {
                 if (!strcmp(key, "ModRate")) rate_set[v] = 1;
             }
         } else if (sec == S_PAT) {   /* a: { Chained = true  Length = 16  1: { Accents = ..  Triggers = .. } .. } b: .. */
-            if (depth == sec_depth + 1 && s[0] >= 'a' && s[0] < 'a' + NPAT && s[1] == ':') pi = s[0] - 'a';
+            if (depth == sec_depth + 1 && hdr(s) >= 'a' && hdr(s) < 'a' + NPAT) pi = hdr(s) - 'a';
             else if (pi >= 0 && depth == sec_depth + 2 && kv && !strcmp(key, "Length")) {
                 int l = atoi(val);
                 ps->p[pi].len = (uint8_t)(l >= 1 && l <= 16 ? l : 16);
             } else if (pi >= 0 && depth == sec_depth + 2 && kv && !strcmp(key, "Chained")) ps->p[pi].chained = word_is(val, "true");
-            else if (pi >= 0 && depth == sec_depth + 2 && *s >= '1' && *s <= '8' && s[1] == ':') pv_ = *s - '1';
+            else if (pi >= 0 && depth == sec_depth + 2 && hdr(s) >= '1' && hdr(s) <= '8') pv_ = hdr(s) - '1';
             else if (pi >= 0 && pv_ >= 0 && depth == sec_depth + 3) {
                 if (kv && !strcmp(key, "Triggers")) {
                     ps->p[pi].trig[pv_] = steps_bits(val, NULL);
@@ -429,6 +435,11 @@ static int in_fav_dir(const db_t *D, const char *path) {
     char f[700];
     snprintf(f, sizeof f, "%s/%s/", D->dir, FAV_DIR);
     return !strncasecmp(path, f, strlen(f));
+}
+
+int kit_read_file(const char *path, kit_t *k) {
+    memset(k, 0, sizeof *k);
+    return load_file(path, k);
 }
 
 void kits_load(db_t *D) {

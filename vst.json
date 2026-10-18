@@ -14,13 +14,16 @@
     "sources": [
       "src/drumbox.c",
       "src/voice.c",
-      "src/kits.c"
+      "src/kits.c",
+      "src/explore.c"
     ],
     "cflags": [
-      "-Isrc"
+      "-Isrc",
+      "-pthread"
     ],
     "libs": [
-      "-lm"
+      "-lm",
+      "-lpthread"
     ]
   },
   "params": "params.json",
