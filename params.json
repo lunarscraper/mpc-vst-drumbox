@@ -6,7 +6,7 @@
    "name": "KIT",
    "type": "stepper",
    "min": 0,
-   "max": 511,
+   "max": 2047,
    "step": 1,
    "default": 0,
    "display": "int",
@@ -1737,6 +1737,100 @@
     "3"
    ],
    "default": "2"
+  },
+  {
+   "key": "preview",
+   "name": "PREVIEW",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "ON"
+  },
+  {
+   "key": "preview_play",
+   "name": "PLAY PREVIEW",
+   "momentary": true
+  },
+  {
+   "key": "fav",
+   "name": "FAVORIT",
+   "momentary": true
+  },
+  {
+   "key": "info",
+   "name": "INFO",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
+  },
+  {
+   "key": "drum",
+   "name": "SOUND",
+   "type": "stepper",
+   "min": 0,
+   "max": 4095,
+   "step": 1,
+   "default": 0,
+   "display": "int",
+   "clamped": true
+  },
+  {
+   "key": "drum_prev",
+   "name": "PREV SOUND",
+   "momentary": true,
+   "step_of": "drum",
+   "step_delta": -1
+  },
+  {
+   "key": "drum_next",
+   "name": "NEXT SOUND",
+   "momentary": true,
+   "step_of": "drum",
+   "step_delta": 1
+  },
+  {
+   "key": "drum_name",
+   "name": "SOUND NAME",
+   "min": 0,
+   "max": 0,
+   "display": "string",
+   "type": "readout"
+  },
+  {
+   "key": "drum_voice",
+   "name": "TO VOICE",
+   "options": [
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8"
+   ],
+   "default": "V1"
+  },
+  {
+   "key": "drum_take",
+   "name": "TAKE",
+   "momentary": true
+  },
+  {
+   "key": "drum_play",
+   "name": "PLAY SOUND",
+   "momentary": true
+  },
+  {
+   "key": "pad_browse",
+   "name": "PAD BROWSE",
+   "options": [
+    "OFF",
+    "ON"
+   ],
+   "default": "OFF"
   }
  ]
 }

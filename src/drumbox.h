@@ -1,6 +1,7 @@
 /* Drumbox: an eight-voice drum synth for MPC / Force, after nb_tonic (sonocircuit, MIT), which is a port of
  * supertonic (Zack Scholl, MIT), itself inspired by Sonic Charge Microtonic. It loads Microtonic presets (.mtpreset,
- * e.g. from Patternarium) and nb_tonic kits (.tkit). No sequencer: the voices are played by MIDI notes.
+ * e.g. from Patternarium), Microtonic drum patches (.mtdrum, one voice) and nb_tonic kits (.tkit). No sequencer: the
+ * voices are played by MIDI notes; a preset's pattern A only plays to preview it.
  *
  * Per voice: an oscillator (sine / triangle / saw) with a pitch modulation (decay / sine / noise), filtered noise
  * (LP / BP / HP, three envelope shapes: exp, linear, clap), their mix, distortion, a peak EQ, level and pan, three
@@ -12,8 +13,10 @@
 #include "params_def.h"
 
 #define NV 8              /* voices */
-#define MAX_KITS 512
+#define MAX_KITS 2048
+#define MAX_DRUMS 4096    /* .mtdrum files listed */
 #define NUSER 32          /* the user slots: <data>/USER/NN.mtpreset */
+#define AUD NV            /* the audition voice (SOUNDS page), after the eight */
 #define NINST 2           /* per voice: the one playing and the one fading out (choke, retrigger) */
 
 /* a voice's parameters, in PDEF order from P_V1_OSC_WAVE (VSTRIDE apart) */
@@ -47,11 +50,22 @@ float i_q(float q);
 float i_db(float db);
 float i_eqgain(float db);
 
+/* a preset's pattern A (Microtonic: 1..16 steps per voice, triggers and accents), for the preview only */
+typedef struct {
+    int has, len, div;     /* div: StepRate's 1/<div> (16 = sixteenths) */
+    float tempo;           /* the preset's own, BPM (0: none) */
+    uint16_t trig[NV], acc[NV];
+    uint8_t mute;          /* bit v: voice v muted in the preset */
+} pattern_t;
+
 typedef struct {
     char name[32];
     int user;              /* 1..32: a user slot (empty while !used) */
     int used;
+    int loaded;            /* a file's kit is read when it is first picked (kit_ensure) */
+    char *path;            /* the file it comes from (NULL: built in) */
     float pv[NV][NVP];     /* knob 0..100 or option index, as the parameters hold them */
+    pattern_t pat;
 } kit_t;
 
 /* an exponential / linear breakpoint envelope (SuperCollider Env: levels, times, curve) */
@@ -94,19 +108,30 @@ typedef struct {
 
 typedef struct {
     float pv[NP];
-    voice_t v[NV];
+    voice_t v[NV + 1];             /* the eight, and the audition voice (AUD) */
     kit_t *kits;
     int nkits, nbuiltin, user0;    /* user slots at user0 .. user0+NUSER-1 */
     int kit_pending;
     char dir[512];
-    char status[48];
+    char status[48], info[48];
+    /* .mtdrum files (SOUNDS page): listed when the plugin is inserted, read when picked */
+    char **dpath, **dname;
+    int ndrums, dcur;              /* dcur: the one in dpv (-1: none) */
+    float dpv[NVP];
+    int aud_drum;                  /* play the audition voice at the next block */
+    /* the preview: a preset's pattern A, twice, at the host's tempo */
+    int seq_on, seq_step, seq_total, seq_left, seq_frames, seq_start;
+    pattern_t seq;
+    int tp_seen, tp_playing;
+    double tp_bpm;
+    int changed, changed_k;        /* what the pads changed, for the screen (mpc_engine_changed): 1 KIT, 2 SOUND, 4 TAKE */
     biquad_t lpf; bq_state_t lpfs[2];
     float lpf_cut, lpf_res;        /* the coefficients' settings */
     uint32_t seed;
 } db_t;
 
 /* voice.c */
-void voice_trigger(db_t *D, int v, float vel);
+void voice_trigger(db_t *D, int v, float vel);   /* v = AUD plays dpv */
 void voice_choke(db_t *D, int v);
 void voice_kill(db_t *D);
 void voice_render(db_t *D, int v, float *L, float *R, int n);
@@ -114,7 +139,11 @@ void voice_render(db_t *D, int v, float *L, float *R, int n);
 /* kits.c */
 void kits_load(db_t *D);
 void kits_free(db_t *D);
+int kit_ensure(db_t *D, int n);              /* read kit n's file if not yet; 1 = usable */
 int kit_save_user(db_t *D, int slot);        /* the voices as they are -> USER/NN.mtpreset; 0 = ok */
+int kit_favorite(db_t *D);                   /* the loaded kit -> Favoriten/; 0 = ok (D->info says what happened) */
+int drum_ensure(db_t *D, int n);             /* read .mtdrum n into dpv; 1 = ok */
 void kit_init_values(float pv[NV][NVP]);
 int parse_mtpreset(const char *text, kit_t *k);
+int parse_mtdrum(const char *text, float *p, char *name, int nlen);
 int parse_tkit(const char *text, kit_t *k);

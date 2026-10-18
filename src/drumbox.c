@@ -23,6 +23,8 @@ typedef struct {
     void (*render)(void *inst, int16_t *out_lr, int frames);
 } mpc_engine_t;
 const mpc_engine_t *mpc_engine(void);
+void mpc_engine_transport(void *inst, double bpm, double ppq, int playing);   /* optional (engine.h): tempo, PLAY */
+int mpc_engine_changed(void *inst, char *key, int len);   /* optional (engine.h): what the pads changed */
 
 static const int BASE_NOTE[5] = {24, 36, 44, 48, 60};   /* BASE NOTE's options (mpc/gen.py BASE_NOTES) */
 
@@ -70,13 +72,19 @@ static inline void ftz_off(fpstate_t old) {
 
 /* ---- kits ------------------------------------------------------------------------------------------------------ */
 
+static void seq_begin(db_t *D, const pattern_t *p);
+
 static void load_kit(db_t *D, int n) {
     if (n < 0 || n >= D->nkits) return;
+    kit_ensure(D, n);   /* normally done already where KIT was set (e_set_param): the file isn't read here */
     const kit_t *k = &D->kits[n];
     for (int v = 0; v < NV; v++)
         for (int j = 0; j < NVP; j++) D->pv[VK(v, j)] = k->pv[v][j];
     D->pv[P_KIT] = (float)n;
     if (k->user) D->pv[P_SLOT] = (float)k->user;
+    /* PREVIEW: the kit's pattern A plays (twice), unless the Force is playing */
+    if ((int)D->pv[P_PREVIEW] && !(D->tp_seen && D->tp_playing)) seq_begin(D, &k->pat);
+    else D->seq_on = 0;
 }
 
 /* A kit set waits for the next block, MIDI event, other parameter or state save. MPC's plugin host sets parameter 0
@@ -92,6 +100,44 @@ static void apply_kit(db_t *D) {
 
 /* ---- MIDI ------------------------------------------------------------------------------------------------------ */
 
+static void hit(db_t *D, int v, float vel) {   /* a voice, and its choke group */
+    int g = (int)D->pv[VK(v, VP_CHOKE)];
+    if (g > 0)
+        for (int u = 0; u < NV; u++)
+            if (u != v && (int)D->pv[VK(u, VP_CHOKE)] == g) voice_choke(D, u);
+    voice_trigger(D, v, vel);
+}
+
+/* PAD BROWSE: pads 9-15 (BASE NOTE + 8 .. + 14) while the Force is stopped. A kit picked here is read on the audio
+ * thread (a few ms, only while nothing plays); the screen follows through mpc_engine_changed. */
+static void pad_browse(db_t *D, int k) {
+    int cur = (int)D->pv[P_KIT];
+    if (k == 0 || k == 1) {
+        int n = cur + (k ? 1 : -1);
+        if (n < 0 || n >= D->nkits) return;
+        kit_ensure(D, n);
+        D->info[0] = 0;
+        load_kit(D, n);
+        D->changed |= 1;
+    } else if (k == 2) kit_favorite(D);
+    else if (k == 3) {
+        if (cur >= 0 && cur < D->nkits) seq_begin(D, &D->kits[cur].pat);
+    } else if (k == 4 || k == 5) {
+        int n = (int)D->pv[P_DRUM] + (k == 5 ? 1 : -1);
+        if (n < 0 || n >= D->ndrums) return;
+        D->pv[P_DRUM] = (float)n;
+        D->info[0] = 0;
+        if (drum_ensure(D, n)) voice_trigger(D, AUD, 110.0f);
+        D->changed |= 2;
+    } else if (k == 6 && D->dcur >= 0) {
+        int v = (int)D->pv[P_DRUM_VOICE];
+        for (int j = 0; j < NVP; j++)
+            if (j != VP_CHOKE) D->pv[VK(v, j)] = D->dpv[j];
+        snprintf(D->info, sizeof D->info, "V%d: %.36s", v + 1, D->dname && D->dname[D->dcur] ? D->dname[D->dcur] : "");
+        D->changed |= 4;
+    }
+}
+
 static void e_midi(void *inst, const uint8_t *m, int len) {
     db_t *D = inst;
     apply_kit(D);
@@ -99,15 +145,47 @@ static void e_midi(void *inst, const uint8_t *m, int len) {
     int st = m[0] & 0xF0, d1 = m[1] & 0x7F, d2 = len > 2 ? m[2] & 0x7F : 0;
     if (st == 0x90 && d2 > 0) {
         int v = d1 - BASE_NOTE[(int)D->pv[P_BASE_NOTE] % 5];
+        if (v >= NV && v < NV + 7 && (int)D->pv[P_PAD_BROWSE] && !(D->tp_seen && D->tp_playing)) {
+            pad_browse(D, v - NV);
+            return;
+        }
         if (v < 0 || v >= NV) return;
-        int g = (int)D->pv[VK(v, VP_CHOKE)];
-        if (g > 0)
-            for (int u = 0; u < NV; u++)
-                if (u != v && (int)D->pv[VK(u, VP_CHOKE)] == g) voice_choke(D, u);
-        voice_trigger(D, v, (float)d2);
+        D->seq_on = 0;   /* playing the pads ends a preview */
+        hit(D, v, (float)d2);
     } else if (st == 0xB0 && (d1 == 120 || d1 == 123)) {
+        D->seq_on = 0;
         voice_kill(D);
     }
+}
+
+/* ---- the preview: pattern A, twice, at the Force's tempo (the preset's own without one) ------------------------- *
+ * Accented steps play at velocity 127, the others at 96; the preset's mutes are kept. A kit without a pattern (a
+ * .tkit, a built-in nb_tonic kit) plays its eight voices one after another, an eighth note apart. Only to hear a kit
+ * while browsing: it never runs while the Force plays, and a pad, a new kit or PLAY on the Force stops it. */
+static void seq_begin(db_t *D, const pattern_t *p) {
+    pattern_t q = *p;
+    if (!q.has) {
+        memset(&q, 0, sizeof q);
+        q.has = 1;
+        q.len = 16;
+        q.div = 16;
+        for (int v = 0; v < NV; v++) q.trig[v] = (uint16_t)(1u << (2 * v));
+        D->seq_total = 16;
+    } else D->seq_total = 2 * q.len;
+    double bpm = D->tp_bpm > 20.0 ? D->tp_bpm : q.tempo > 20.0f ? q.tempo : 120.0;
+    D->seq_frames = (int)(SR * 60.0 / bpm * 4.0 / (q.div > 0 ? q.div : 16) + 0.5);
+    D->seq = q;
+    D->seq_step = 0;
+    D->seq_left = 0;
+    D->seq_on = 1;
+}
+
+static void seq_fire(db_t *D) {
+    int s = D->seq_step % (D->seq.len > 0 ? D->seq.len : 16);
+    for (int v = 0; v < NV; v++)
+        if (!(D->seq.mute >> v & 1) && (D->seq.trig[v] >> s & 1)) hit(D, v, (D->seq.acc[v] >> s & 1) ? 127.0f : 96.0f);
+    if (++D->seq_step >= D->seq_total) D->seq_on = 0;
+    D->seq_left = D->seq_frames;
 }
 
 /* ---- render ---------------------------------------------------------------------------------------------------- */
@@ -135,10 +213,21 @@ static void e_render(void *inst, int16_t *out, int frames) {
         D->lpf_cut = cut;
         D->lpf_res = res;
     }
-    for (int off = 0; off < frames; off += BLK) {
+    if (D->seq_start) {   /* PLAY (PREVIEW): the loaded kit's pattern from the start */
+        D->seq_start = 0;
+        int k = (int)D->pv[P_KIT];
+        if (k >= 0 && k < D->nkits) seq_begin(D, &D->kits[k].pat);
+    }
+    if (D->aud_drum) {   /* SOUNDS: the picked .mtdrum on its own voice */
+        D->aud_drum = 0;
+        if (D->dcur >= 0) voice_trigger(D, AUD, 110.0f);
+    }
+    for (int off = 0; off < frames;) {
+        if (D->seq_on && D->seq_left <= 0) seq_fire(D);
         int n = frames - off < BLK ? frames - off : BLK;
+        if (D->seq_on && D->seq_left < n) n = D->seq_left;
         float L[BLK] = {0}, R[BLK] = {0};
-        for (int v = 0; v < NV; v++) voice_render(D, v, L, R, n);
+        for (int v = 0; v <= NV; v++) voice_render(D, v, L, R, n);
         for (int i = 0; i < n; i++) {
             float l = L[i] * vol, r = R[i] * vol;
             if (lpf) {
@@ -148,6 +237,8 @@ static void e_render(void *inst, int16_t *out, int frames) {
             out[2 * (off + i)] = out_sample(l);
             out[2 * (off + i) + 1] = out_sample(r);
         }
+        if (D->seq_on) D->seq_left -= n;
+        off += n;
     }
     ftz_off(fp);
 }
@@ -213,6 +304,18 @@ static void e_set_param(void *inst, const char *key, const char *val) {
     if (i == P_KIT) {   /* loaded at the next block (apply_kit); setting the kit already loaded changes nothing */
         int n = atoi(val);
         D->kit_pending = n < 0 ? 0 : n >= D->nkits ? D->nkits - 1 : n;
+        kit_ensure(D, D->kit_pending);   /* its file is read here, on the thread that set it, not in the audio block */
+        D->info[0] = 0;
+        return;
+    }
+    if (i == P_DRUM) {   /* SOUNDS: read the .mtdrum and play it */
+        int n = atoi(val);
+        if (D->ndrums <= 0) return;
+        n = n < 0 ? 0 : n >= D->ndrums ? D->ndrums - 1 : n;
+        D->pv[P_DRUM] = (float)n;
+        D->info[0] = 0;
+        if (drum_ensure(D, n)) D->aud_drum = 1;
+        else snprintf(D->info, sizeof D->info, "CAN'T READ THIS .MTDRUM");
         return;
     }
     apply_kit(D);   /* a kit first, then this on top of it, in the order they came */
@@ -227,8 +330,24 @@ static void e_set_param(void *inst, const char *key, const char *val) {
         }
         return;
     }
+    if (i == P_PREVIEW_PLAY || i == P_FAV || i == P_DRUM_PLAY || i == P_DRUM_TAKE) {
+        if (atof(val) < 0.5f) return;   /* the button's release */
+        if (i == P_PREVIEW_PLAY) D->seq_start = 1;
+        else if (i == P_FAV) kit_favorite(D);
+        else if (i == P_DRUM_PLAY) D->aud_drum = D->dcur >= 0;
+        else if (D->dcur >= 0) {   /* TAKE: the sound into the chosen voice (its choke group stays) */
+            int v = (int)D->pv[P_DRUM_VOICE];
+            for (int j = 0; j < NVP; j++)
+                if (j != VP_CHOKE) D->pv[VK(v, j)] = D->dpv[j];
+            snprintf(D->info, sizeof D->info, "V%d: %.36s", v + 1, D->dname && D->dname[D->dcur] ? D->dname[D->dcur] : "");
+            D->changed |= 4;   /* the screen shows the voice's new values */
+            D->changed_k = 0;
+        }
+        return;
+    }
     set_value(D, i, val);
     if (i == P_SLOT) D->status[0] = 0;
+    if (i == P_PREVIEW && !(int)D->pv[P_PREVIEW]) D->seq_on = 0;
 }
 
 /* ---- what the screen reads -------------------------------------------------------------------------------------- */
@@ -277,6 +396,12 @@ static int e_get_param(void *inst, const char *key, char *buf, int len) {
     if (!strcmp(key, "kit_name") || !strncmp(key, "kit_name_at:", 12)) {
         int n = key[8] ? atoi(key + 12) : cur;
         return n >= 0 && n < D->nkits ? snprintf(buf, len, "%s", D->kits[n].name) : 0;
+    }
+    if (!strcmp(key, "info")) return snprintf(buf, len, "%s", D->info);
+    if (!strcmp(key, "drum_name")) {
+        if (D->ndrums <= 0) return snprintf(buf, len, "NO .MTDRUM IN THE FOLDER");
+        int n = (int)D->pv[P_DRUM];
+        return snprintf(buf, len, "%d/%d  %s", n + 1, D->ndrums, D->dname && D->dname[n] ? D->dname[n] : "");
     }
     if (!strcmp(key, "slot_name")) {
         if (D->status[0]) return snprintf(buf, len, "%s", D->status);
@@ -327,3 +452,29 @@ static void e_destroy(void *inst) {
 
 static const mpc_engine_t ENGINE = {e_create, e_destroy, e_midi, e_set_param, e_get_param, e_render};
 const mpc_engine_t *mpc_engine(void) { return &ENGINE; }
+
+/* After each block the wrapper asks which parameters changed here (the pads' browsing), one at a time, and tells MPC
+ * (engine.h), so the screen follows: KIT, SOUND, and after a TAKE the voice's controls. */
+int mpc_engine_changed(void *inst, char *key, int len) {
+    db_t *D = inst;
+    if (D->changed & 1) { D->changed &= ~1; return snprintf(key, len, "kit") > 0; }
+    if (D->changed & 2) { D->changed &= ~2; return snprintf(key, len, "drum") > 0; }
+    if (D->changed & 4) {   /* TAKE: the voice's controls, one per call */
+        int v = (int)D->pv[P_DRUM_VOICE];
+        if (D->changed_k < NVP) return snprintf(key, len, "%s", PDEF[VK(v, D->changed_k++)].key) > 0;
+        D->changed &= ~4;
+        D->changed_k = 0;
+    }
+    return 0;
+}
+
+/* The wrapper calls this once per host buffer, before rendering it (engine.h): the preview plays at the Force's
+ * tempo, and stops (and doesn't start) while the Force plays. */
+void mpc_engine_transport(void *inst, double bpm, double ppq, int playing) {
+    db_t *D = inst;
+    (void)ppq;
+    if (playing && !(D->tp_seen && D->tp_playing)) D->seq_on = 0;
+    D->tp_seen = 1;
+    D->tp_playing = playing != 0;
+    if (bpm > 20.0) D->tp_bpm = bpm;
+}

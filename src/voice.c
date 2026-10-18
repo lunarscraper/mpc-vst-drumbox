@@ -99,12 +99,12 @@ void voice_choke(db_t *D, int v) {
 }
 
 void voice_kill(db_t *D) {
-    for (int v = 0; v < NV; v++)
+    for (int v = 0; v <= NV; v++)
         for (int i = 0; i < NINST; i++) D->v[v].in[i].active = 0;
 }
 
 void voice_trigger(db_t *D, int v, float vel) {
-    const float *p = &D->pv[VK(v, 0)];
+    const float *p = v == AUD ? D->dpv : &D->pv[VK(v, 0)];
     voice_choke(D, v);
     inst_t *I = &D->v[v].in[0];
     memset(I, 0, sizeof *I);

@@ -3,7 +3,7 @@
 /* kind: 0 = number (min..max), 1 = option list (value = index), 2 = kit / slot number, 3 = not stored */
 typedef struct { const char *key; int kind; int nopts; float def, min, max; } pdef_t;
 static const pdef_t PDEF[] = {
-    {"kit", 2, 0, 0.0000f, 0.0f, 511.0f},
+    {"kit", 2, 0, 0.0000f, 0.0f, 2047.0f},
     {"kit_prev", 3, 0, 0.0000f, 0.0f, 0.0f},
     {"kit_next", 3, 0, 0.0000f, 0.0f, 0.0f},
     {"kit_name", 3, 0, 0.0000f, 0.0f, 0.0f},
@@ -208,6 +208,18 @@ static const pdef_t PDEF[] = {
     {"v8_n_vel", 0, 0, 60.0000f, 0.0f, 200.0f},
     {"v8_mod_vel", 0, 0, 100.0000f, 0.0f, 200.0f},
     {"v8_choke", 1, 4, 2.0000f, 0.0f, 3.0f},
+    {"preview", 1, 2, 1.0000f, 0.0f, 1.0f},
+    {"preview_play", 3, 0, 0.0000f, 0.0f, 0.0f},
+    {"fav", 3, 0, 0.0000f, 0.0f, 0.0f},
+    {"info", 3, 0, 0.0000f, 0.0f, 0.0f},
+    {"drum", 2, 0, 0.0000f, 0.0f, 4095.0f},
+    {"drum_prev", 3, 0, 0.0000f, 0.0f, 0.0f},
+    {"drum_next", 3, 0, 0.0000f, 0.0f, 0.0f},
+    {"drum_name", 3, 0, 0.0000f, 0.0f, 0.0f},
+    {"drum_voice", 1, 8, 0.0000f, 0.0f, 7.0f},
+    {"drum_take", 3, 0, 0.0000f, 0.0f, 0.0f},
+    {"drum_play", 3, 0, 0.0000f, 0.0f, 0.0f},
+    {"pad_browse", 1, 2, 0.0000f, 0.0f, 1.0f},
 };
 enum {
     P_KIT = 0,
@@ -415,6 +427,18 @@ enum {
     P_V8_N_VEL = 202,
     P_V8_MOD_VEL = 203,
     P_V8_CHOKE = 204,
-    NP = 205
+    P_PREVIEW = 205,
+    P_PREVIEW_PLAY = 206,
+    P_FAV = 207,
+    P_INFO = 208,
+    P_DRUM = 209,
+    P_DRUM_PREV = 210,
+    P_DRUM_NEXT = 211,
+    P_DRUM_NAME = 212,
+    P_DRUM_VOICE = 213,
+    P_DRUM_TAKE = 214,
+    P_DRUM_PLAY = 215,
+    P_PAD_BROWSE = 216,
+    NP = 217
 };
 #define VSTRIDE 24   /* v<n>_osc_wave is P_V1_OSC_WAVE + VSTRIDE * (n - 1) */

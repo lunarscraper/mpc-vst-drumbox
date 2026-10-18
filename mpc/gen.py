@@ -107,7 +107,9 @@ INIT = read_tkit(os.path.join(ROOT, "kits", "nb_tonic", "default.tkit"))
 
 def params():
     P = []
-    P.append(dict(key="kit", name="KIT", type="stepper", min=0, max=511, step=1, default=0, display="int", clamped=True))
+    # a long list: browsed with the arrows, the PRESET menu or the pads (PAD BROWSE), not a Q-Link (with QLINK_TRAVEL a
+    # Q-Link event is 1/128 of the range, 16 kits)
+    P.append(dict(key="kit", name="KIT", type="stepper", min=0, max=2047, step=1, default=0, display="int", clamped=True))
     P.append(dict(key="kit_prev", name="PREV KIT", momentary=True, step_of="kit", step_delta=-1))
     P.append(dict(key="kit_next", name="NEXT KIT", momentary=True, step_of="kit", step_delta=1))
     P.append(dict(key="kit_name", name="KIT NAME", min=0, max=0, display="string", type="readout"))
@@ -133,6 +135,21 @@ def params():
                 lo, hi = RANGES.get(key, (0, 100))
                 d.update(min=lo, max=hi, default=round(init[key], 3), dynamic_display=True)
             P.append(d)
+    # 0.2.0: the preset browser (PREVIEW: pattern A when a kit is picked; FAVORIT) and the SOUNDS page (.mtdrum)
+    P.append(dict(key="preview", name="PREVIEW", options=["OFF", "ON"], default="ON"))
+    P.append(dict(key="preview_play", name="PLAY PREVIEW", momentary=True))
+    P.append(dict(key="fav", name="FAVORIT", momentary=True))
+    P.append(dict(key="info", name="INFO", min=0, max=0, display="string", type="readout"))
+    P.append(dict(key="drum", name="SOUND", type="stepper", min=0, max=4095, step=1, default=0, display="int",
+                  clamped=True))
+    P.append(dict(key="drum_prev", name="PREV SOUND", momentary=True, step_of="drum", step_delta=-1))
+    P.append(dict(key="drum_next", name="NEXT SOUND", momentary=True, step_of="drum", step_delta=1))
+    P.append(dict(key="drum_name", name="SOUND NAME", min=0, max=0, display="string", type="readout"))
+    P.append(dict(key="drum_voice", name="TO VOICE", options=["V%d" % v for v in range(1, NV + 1)], default="V1"))
+    P.append(dict(key="drum_take", name="TAKE", momentary=True))
+    P.append(dict(key="drum_play", name="PLAY SOUND", momentary=True))
+    # pads 9-15 (BASE NOTE + 8 .. + 14) browse while the Force is stopped: kit -/+, FAVORIT, PLAY, sound -/+, TAKE
+    P.append(dict(key="pad_browse", name="PAD BROWSE", options=["OFF", "ON"], default="OFF"))
     return P
 
 
@@ -144,7 +161,7 @@ def params_def(P):
     for p in P:
         if "options" in p:
             kind, n, df, lo, hi = 1, len(p["options"]), p["options"].index(p["default"]), 0, len(p["options"]) - 1
-        elif p["key"] in ("kit", "slot"):
+        elif p["key"] in ("kit", "slot", "drum"):
             kind, n, df, lo, hi = 2, 0, p["default"], p["min"], p["max"]
         elif p.get("momentary") or p.get("display") == "string":
             kind, n, df, lo, hi = 3, 0, 0, 0, 0
@@ -192,24 +209,41 @@ focus_ring=1
 """
 
 
+BTN_L = "img=images/btn_220x70.png img_on=images/btn_220x70_on.png"   # big touch buttons (mpc/art.py)
+BTN_S = "img=images/btn_180x64.png img_on=images/btn_180x64_on.png"
+
+
 def layout():
     L = [THEME]
     # MASTER
     L.append("[tab MASTER]")
-    L.append('frame x=16 y=98 w=1248 h=150 title="KIT"')
-    L.append("stepper cx=640 cy=180 w=1000 h=78 label=\"\" key=kit get=kit_name style=dotmatrix")
-    L.append('frame x=16 y=262 w=480 h=440 title="MASTER"')
-    L.append('knob cx=110 cy=420 r=44 label="VOLUME" key=volume')
-    L.append('knob cx=256 cy=420 r=44 label="LPF CUTOFF" key=lpf_cut')
-    L.append('knob cx=402 cy=420 r=44 label="LPF RESO" key=lpf_res')
-    L.append('frame x=510 y=262 w=290 h=440 title="PADS"')
-    L.append('enum_v cx=655 cy=470 label="V1 NOTE" key=base_note sw=150 sh=40')
-    L.append('text cx=655 cy=650 label="V2-V8: THE NEXT NOTES" size=1.5')
-    L.append('frame x=814 y=262 w=450 h=440 title="USER SLOTS"')
-    L.append("stepper cx=1039 cy=380 w=410 h=70 label=\"\" key=slot get=slot_name style=dotmatrix")
-    L.append('button cx=1039 cy=520 w=200 h=70 label="SAVE" key=save')
-    L.append('text cx=1039 cy=620 label="SAVE: THE VOICES AS THEY ARE" size=1.5')
-    L.append('qlinks "MASTER" = volume,lpf_cut,lpf_res,-,kit,slot')
+    L.append('frame x=16 y=98 w=1248 h=236 title="KIT"')
+    L.append("stepper cx=640 cy=172 w=1000 h=74 label=\"\" key=kit get=kit_name style=dotmatrix")
+    L.append('enum_h cx=190 cy=280 label="PREVIEW" key=preview sw=80 sh=48')
+    L.append('button cx=400 cy=280 w=180 h=64 label="PLAY" key=preview_play %s' % BTN_S)
+    L.append('button cx=600 cy=280 w=180 h=64 label="FAVORIT" key=fav %s' % BTN_S)
+    L.append('readout cx=970 cy=280 w=500 h=50 key=info')
+    L.append('frame x=16 y=346 w=480 h=356 title="MASTER"')
+    L.append('knob cx=110 cy=500 r=44 label="VOLUME" key=volume')
+    L.append('knob cx=256 cy=500 r=44 label="LPF CUTOFF" key=lpf_cut')
+    L.append('knob cx=402 cy=500 r=44 label="LPF RESO" key=lpf_res')
+    L.append('frame x=510 y=346 w=290 h=356 title="PADS"')
+    L.append('enum_v cx=655 cy=492 label="V1 NOTE" key=base_note sw=150 sh=40')
+    L.append('enum_h cx=655 cy=652 label="PADS 9-15: BROWSE" key=pad_browse sw=80 sh=44')
+    L.append('frame x=814 y=346 w=450 h=356 title="USER SLOTS"')
+    L.append("stepper cx=1039 cy=440 w=410 h=70 label=\"\" key=slot get=slot_name style=dotmatrix")
+    L.append('button cx=1039 cy=560 w=220 h=70 label="SAVE" key=save %s' % BTN_L)
+    L.append('text cx=1039 cy=660 label="SAVE: THE VOICES AS THEY ARE" size=1.5')
+    L.append('qlinks "MASTER" = volume,lpf_cut,lpf_res,-,slot')
+    # SOUNDS: .mtdrum files, one voice at a time
+    L.append("[tab SOUNDS]")
+    L.append('frame x=16 y=98 w=1248 h=604 title="MICROTONIC DRUM SOUNDS (.MTDRUM)"')
+    L.append("stepper cx=640 cy=200 w=1100 h=80 label=\"\" key=drum get=drum_name style=dotmatrix")
+    L.append('text cx=640 cy=275 label="EACH STEP PLAYS THE SOUND ON ITS OWN" size=1.5')
+    L.append('enum_h cx=640 cy=410 label="TO VOICE" key=drum_voice sw=120 sh=48')
+    L.append('button cx=480 cy=530 w=220 h=70 label="PLAY" key=drum_play %s' % BTN_L)
+    L.append('button cx=800 cy=530 w=220 h=70 label="TAKE" key=drum_take %s' % BTN_L)
+    L.append('readout cx=640 cy=630 w=900 h=50 key=info')
     # the voices: OSC | NOISE | OUT, two rows of knobs each, the switches above them
     for v in range(1, NV + 1):
         k = lambda s: "v%d_%s" % (v, s)
@@ -270,8 +304,11 @@ def builtin_kits():
            "static const builtin_kit_t BUILTIN_KITS[] = {"]
     for name, rel in BUILTIN:
         text = open(os.path.join(ROOT, "kits", rel)).read()
-        if rel.endswith(".mtpreset"):   # the patterns aren't read: leave them out of the plugin
-            text = text.split("\tPatterns:")[0] + "}\n"
+        if rel.endswith(".mtpreset"):   # only pattern A is read (the preview): leave B-L out of the plugin
+            head, _, pats = text.partition("\tPatterns:")
+            if pats:
+                a = pats.split("\n\t\tb: {")[0]
+                text = head + "\tPatterns:" + a + "\n\t}\n}\n"
         out.append("    {%s, %d,\n%s},"
                    % (json.dumps(name), int(rel.endswith(".tkit")), c_string(text)))
     out.append("};")
