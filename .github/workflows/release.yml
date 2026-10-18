@@ -1,0 +1,37 @@
+# Build a DRAFT release (tag v<version>) with mpc-vst-plugins' shared workflow: Actions -> "Release (draft)" -> Run
+# workflow. Then install that draft's zip on the Force, try it and publish the draft. dry_run builds the zip and skin
+# previews as run artifacts only.
+# The tools come from saustin2010/mpc-vst-plugins at eaef502 (sd88me's repo plus changes offered to it), the same
+# commit Percolator builds with: "programs" count / name_at (the PRESET menu lists every kit), "clamped" (KIT and SLOT
+# follow what is loaded), QLINK_TRAVEL / SET_IF_CHANGED and SAMPLE_ACCURATE.
+name: Release (draft)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version, e.g. 1.0.0
+        required: true
+      dry_run:
+        description: Build only (zip + skin previews as run artifacts), no draft release
+        type: boolean
+        default: false
+
+jobs:
+  vst:
+    uses: saustin2010/mpc-vst-plugins/.github/workflows/vst-release.yml@eaef502c0a537605b73a0e2a78dfcbe66e45cf6c
+    permissions:
+      contents: write
+    with:
+      tag: v${{ inputs.version }}
+      version: ${{ inputs.version }}
+      tools_repo: saustin2010/mpc-vst-plugins
+      tools_ref: eaef502c0a537605b73a0e2a78dfcbe66e45cf6c
+      vst_dir: .
+      build: python3 mpc/gen.py && bash "$MPC_VST/tools/build_port.sh" vst.json
+      host_test: '"$MPC_VST/tools/test_port.sh" vst.json'
+      user_data: drumbox
+      plugin_id: drumbox
+      license: MIT
+      about: "Eight-voice drum synth after nb_tonic / supertonic (Microtonic-style); loads Microtonic presets (.mtpreset, Patternarium) and nb_tonic kits, 32 user slots."
+      dry_run: ${{ inputs.dry_run }}
