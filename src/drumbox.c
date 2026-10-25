@@ -258,14 +258,19 @@ static int chain_next(const db_t *D, int p) {
 static void sq_fire(db_t *D, long k) {
     int len = D->wp.p[D->sq_pat].len ? D->wp.p[D->sq_pat].len : 16;
     if (k < D->sq_base || k - D->sq_base > 4L * 16 || k != D->sq_last + 1) {   /* a start, a loop, a jump: line up again */
-        D->sq_pat = D->sq_queued >= 0 ? D->sq_queued : sel_pattern(D);
+        /* from the pattern picked (sq_home), not from the one a chain had got to when the Force stopped or looped:
+         * A chained to B, A picked, plays A B A B ... after every start, loop and locate, as in Microtonic */
+        if (D->sq_queued >= 0) D->sq_home = D->sq_queued;
+        D->sq_pat = D->sq_home;
         D->sq_queued = -1;
+        if (D->sq_pat != sel_pattern(D)) { D->pv[P_PATTERN] = (float)D->sq_pat; D->pv[P_PAT_LEN] = (float)D->wp.p[D->sq_pat].len; D->changed |= 8; }
         len = D->wp.p[D->sq_pat].len ? D->wp.p[D->sq_pat].len : 16;
         D->sq_base = k - ((k % len) + len) % len;
     }
     while (k - D->sq_base >= len) {   /* the pattern's end: the next one */
         D->sq_base += len;
-        D->sq_pat = D->sq_queued >= 0 ? D->sq_queued : chain_next(D, D->sq_pat);
+        if (D->sq_queued >= 0) D->sq_home = D->sq_pat = D->sq_queued;   /* a pick while playing: the new start too */
+        else D->sq_pat = chain_next(D, D->sq_pat);
         D->sq_queued = -1;
         if (D->sq_pat != sel_pattern(D)) { D->pv[P_PATTERN] = (float)D->sq_pat; D->pv[P_PAT_LEN] = (float)D->wp.p[D->sq_pat].len; D->changed |= 8; }
         len = D->wp.p[D->sq_pat].len ? D->wp.p[D->sq_pat].len : 16;

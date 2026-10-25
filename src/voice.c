@@ -2,17 +2,20 @@
  * sample by sample in C. Each line of the SynthDef has its counterpart here, in the same order:
  *
  *   pitch mod   decay: Decay.ar(Impulse), 60 dB in 1 / (2 x rate); sine: SinOsc(rate, pi); noise: LFNoise0(4 x rate)
- *               lagged by 1 / (4 x rate); scaled by MOD AMT / 2 semitones and the velocity
- *   oscillator  sine / triangle / saw (x 0.5) at (FREQ + 5 Hz) + the pitch mod; in NOISE mod mode with a decay of
- *               100 ms or more it is the second noise source low-passed at the mod rate instead
- *               envelope [0.0001, 1, 0.9, 0.0001] over [attack, decay x decayer, decay], exponential; velocity; softclip
+ *               lagged by 1 / (4 x rate); scaled by MOD AMT semitones (not halved as in nb_tonic) and the velocity
+ * Checked against Microtonic's own stems (VT-78 In The Air, 2026-10-25): nb_tonic's +5 Hz, MOD AMT / 2, noise decay
+ * x 1.4, noise -9 dB, EQ / 2 and the noise replacement in NOISE mode all moved Drumbox away from Microtonic; gone.
+ *   oscillator  sine / triangle / saw (x 0.5) at FREQ + the pitch mod (no +5 Hz offset and no noise replacement in
+ *               NOISE mode: measured against Microtonic's own stems, a voice plays at its FREQ, and NOISE mode with
+ *               MOD AMT 0 is a clean tone); envelope [0.0001, 1, 0.9, 0.0001] over [attack, decay x decayer, decay],
+ *               exponential; velocity; soft limit above full scale only (a sine at full level stays a sine)
  *   noise       +1 / -1 random (nb_tonic's noise buffer), two sources for stereo; LP / BP / HP (RBJ, Q from FILTER Q);
- *               at high Q it fades to a sine at the filter's frequency; envelopes (decay x 1.4):
+ *               at high Q it fades to a sine at the filter's frequency; envelopes (decay as set, not x 1.4):
  *               exp [0.001, 1, 0.0001], linear [0.0001, 1, 0.9, 0.0001], clap (Decay(Impulse) bursts during the attack,
- *               then exponential); Splay; velocity; softclip; -9 dB
+ *               then exponential); Splay; velocity; softclip (no -9 dB trim)
  *   mix         XFade2 (equal power): MIX 100 % = oscillator only, 0 % = noise only (Microtonic's convention)
- *   end         distortion (dry / softclipped +12..24 dB, then -0..6 dB), peak EQ (EQ GAIN / 2, as Scholl measured
- *               against Microtonic), 20 Hz high-pass, LEVEL - 6 dB,
+ *   end         distortion (dry / softclipped +12..24 dB, then -0..6 dB), peak EQ (EQ GAIN in full), 20 Hz
+ *               high-pass, LEVEL - 6 dB,
  *               Balance2 pan
  * A new hit of a voice (or of its choke group) fades the one still sounding out in 50 ms, as nb_tonic's
  * release(0.05). */
@@ -116,12 +119,12 @@ void voice_trigger(db_t *D, int v, float vel) {
     float dist = p[VP_DIST] / 100.0f;
     float decayer = 0.05f * cosf(dist * PI_F * 0.5f) + dist * 0.3f * sinf(dist * PI_F * 0.5f);   /* SelectX */
     float oatk = k_time(p[VP_OSC_ATK]) * 0.001f, odcy = k_time(p[VP_OSC_DCY]) * 0.001f;
-    float natk = k_time(p[VP_N_ATK]) * 0.001f, ndcy = k_time(p[VP_N_DCY]) * 0.001f * 1.4f;
+    float natk = k_time(p[VP_N_ATK]) * 0.001f, ndcy = k_time(p[VP_N_DCY]) * 0.001f;
 
     /* pitch modulation */
     I->mmode = (int)p[VP_MOD_MODE];
     float rate = k_modrate(p[VP_MOD_RATE]);
-    I->amt = k_modamt(p[VP_MOD_AMT]) * 0.5f * velf(p[VP_MOD_VEL], vv);
+    I->amt = k_modamt(p[VP_MOD_AMT]) * velf(p[VP_MOD_VEL], vv);
     I->pm = 1.0f;
     I->pmul = rate > 0.0f ? powf(0.001f, 2.0f * rate * INV_SR) : 1.0f;   /* 60 dB in 1 / (2 rate) */
     I->mph = 0.5f;                                                         /* SinOsc(rate, pi) */
@@ -133,10 +136,8 @@ void voice_trigger(db_t *D, int v, float vel) {
 
     /* oscillator */
     I->wave = (int)p[VP_OSC_WAVE];
-    I->f0 = k_freq(p[VP_OSC_FREQ]) + 5.0f;
+    I->f0 = k_freq(p[VP_OSC_FREQ]);
     I->ph = I->wave == W_SAW ? 0.5f : 0.0f;
-    I->noisy_osc = I->mmode == M_NOISE && odcy >= 0.1f;
-    if (I->noisy_osc) bq_lp(&I->osclp, fmaxf(rate, 10.0f), 1.41421356f);
     {
         float lv[4] = {0.0001f, 1.0f, 0.9f, 0.0001f}, tm[3] = {oatk, odcy * decayer, odcy};
         env_start(&I->eo, lv, tm, 3, 0);
@@ -183,7 +184,7 @@ void voice_trigger(db_t *D, int v, float vel) {
     I->dist = dist;
     I->dist_pre = dbamp(12.0f + 12.0f * dist);
     I->dist_post = dbamp(-6.0f * dist);
-    float eqg = k_eqgain(p[VP_EQ_GAIN]) * 0.5f;   /* Microtonic's +-40 dB is nb_tonic's / Scholl's +-20 */
+    float eqg = k_eqgain(p[VP_EQ_GAIN]);   /* Microtonic's dB as they are (Scholl halved them; Microtonic's stems say no) */
     bq_peak(&I->eq, k_freq(p[VP_EQ_FREQ]), 1.0f, eqg);
     I->use_osc = I->g_osc > 1e-5f;
     I->use_noise = I->g_noise > 1e-5f;
@@ -201,7 +202,7 @@ static int inst_render(inst_t *I, float *L, float *R, int n) {
     for (int i = 0; i < n; i++) {
         /* pitch modulation, in semitones */
         float m = 0.0f;
-        if (I->amt == 0.0f && !I->noisy_osc) ;
+        if (I->amt == 0.0f) ;
         else if (I->mmode == M_DECAY) {
             m = I->pm;
             I->pm *= I->pmul;
@@ -222,7 +223,6 @@ static int inst_render(inst_t *I, float *L, float *R, int n) {
         /* oscillator */
         float eo = env_next(&I->eo), o = 0.0f;
         if (!I->use_osc) ;
-        else if (I->noisy_osc) o = bq_run(&I->osclp, &I->osclp_s, b);
         else {
             float f = m != 0.0f ? I->f0 * fexp2(m * I->amt * (1.0f / 12.0f)) : I->f0, inc = clampf(f * INV_SR, 0.0f, 0.49f);
             float ph = I->ph;
@@ -237,7 +237,7 @@ static int inst_render(inst_t *I, float *L, float *R, int n) {
             ph += inc;
             I->ph = ph - floorf(ph);
         }
-        if (I->use_osc) o = softclip(o * eo * I->ovel);
+        if (I->use_osc) o = 2.0f * softclip(0.5f * o * eo * I->ovel);   /* linear up to full scale */
 
         /* noise */
         float en = env_next(&I->en);
@@ -261,8 +261,8 @@ static int inst_render(inst_t *I, float *L, float *R, int n) {
             nl = bq_run(&I->nf, &I->nfs[0], a);
             nr = I->stereo ? bq_run(&I->nf, &I->nfs[1], b) : nl;
             float g = en * 0.70710678f;
-            nl = softclip((nl * I->xf_f + sn) * g * I->nvel) * 0.35481339f;
-            nr = I->stereo || sn != 0.0f ? softclip((nr * I->xf_f + sn) * g * I->nvel) * 0.35481339f : nl;
+            nl = softclip((nl * I->xf_f + sn) * g * I->nvel);
+            nr = I->stereo || sn != 0.0f ? softclip((nr * I->xf_f + sn) * g * I->nvel) : nl;
         }
 
         /* mix, distortion, EQ, high-pass, level and pan */

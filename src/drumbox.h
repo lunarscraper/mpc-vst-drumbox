@@ -93,10 +93,9 @@ typedef struct {
     int active;
     int ns;                 /* samples since the hit */
     /* oscillator */
-    int wave, mmode, noisy_osc;
+    int wave, mmode;
     float f0, ph, amt, mph, minc, pm, pmul, rnd, rnd_t, lag_c, rnd_y;
     int rnd_left, rnd_period;
-    biquad_t osclp; bq_state_t osclp_s;
     env_t eo;
     float ovel;
     /* noise */
@@ -153,6 +152,7 @@ typedef struct {
     pattern_t seq;
     /* the sequencer (SEQ ON, the Force playing): follows the song position */
     int sq_pat, sq_queued, sq_resync;         /* pattern playing; one picked to follow at the end of it (-1 none) */
+    int sq_home;                              /* the pattern picked: where a start, loop or locate begins */
     long sq_base, sq_last;         /* absolute step where sq_pat started; the last step fired */
     int sq_step;                   /* step of sq_pat playing (the lit column), -1 none */
     int tp_seen, tp_playing;
