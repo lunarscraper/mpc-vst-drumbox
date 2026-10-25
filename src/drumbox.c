@@ -283,6 +283,16 @@ static void sq_fire(db_t *D, long k) {
     D->sq_step = s;
 }
 
+/* stopped (the Force, or SEQ OFF): the pattern picked comes back (a pick still waiting wins), so PLAY, the preview
+ * and a save start there and not where a chain had got to */
+static void seq_back_home(db_t *D) {
+    D->sq_step = -1;
+    if (D->sq_queued >= 0) D->sq_home = D->sq_queued;
+    D->pv[P_PATTERN] = (float)D->sq_home;
+    D->pv[P_PAT_LEN] = (float)D->wp.p[D->sq_home].len;
+    D->changed |= 8;
+}
+
 /* ---- render ---------------------------------------------------------------------------------------------------- */
 
 static inline float soft_ceiling(float x) {   /* instead of a hard clip */
@@ -319,7 +329,9 @@ static void e_render(void *inst, int16_t *out, int frames) {
         u0 = (D->tp_ppq + D->tp_frames * D->tp_bpm / 60.0 / SR) * spq;   /* steps at this block's first sample */
         du = D->tp_bpm / 60.0 / SR * spq;                                /* steps per sample */
         D->seq_on = 0;
-    } else if (!(D->tp_seen && D->tp_playing) && D->sq_step >= 0 && !D->seq_on) D->sq_step = -1;
+    } else if (!(D->tp_seen && D->tp_playing) && D->sq_step >= 0 && !D->seq_on) {
+        seq_back_home(D);   /* stopped */
+    }
     /* the step to go on from: the last one fired; after a start or a jump, the ones from this block's first sample on
      * (a step that fell between two samples belongs to the later one) */
     long nk = 0;
@@ -645,7 +657,7 @@ static void e_set_param(void *inst, const char *key, const char *val) {
         D->changed |= 16;
         D->changed_n = 0;
     }
-    if (i == P_SEQ && !(int)D->pv[P_SEQ]) D->sq_step = -1;
+    if (i == P_SEQ && !(int)D->pv[P_SEQ]) seq_back_home(D);
     if (i == P_SLOT) D->status[0] = 0;
     if (i == P_PREVIEW && !(int)D->pv[P_PREVIEW]) D->seq_on = 0;
 }

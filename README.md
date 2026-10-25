@@ -20,8 +20,9 @@ Mit ausgeschaltetem Sequencer spielt der Force-Sequencer die Stimmen, jede auf i
 **Keine Emulation.** Microtonics DSP ist nicht öffentlich. Drumbox ist eine C-Umsetzung von nb_tonics
 SuperCollider-SynthDef (`lib/nb_tonic.sc`), Zeile für Zeile. Scholl hat seine Fassung nach Gehör gegen Microtonic
 abgeglichen („very close“). Ein Microtonic-Preset klingt in Drumbox also ähnlich, aber nicht identisch.
-Scholls Korrekturen (+5 Hz, MOD AMT und EQ halbiert, Rausch-Decay ×1,4, Rauschen −9 dB, Rauschen statt Oszillator im
-NOISE-Modus) sind entfernt: Gegen echte Microtonic-Stems (VT-78 In The Air) gemessen lag Drumbox ohne sie deutlich näher.
+Gegen echte Microtonic-Stems (VT-78 In The Air, VT-LM2 Like A Record) gemessen sind Scholls +5 Hz, halbierte MOD AMT,
+Rausch-Decay ×1,4, Rauschen −9 dB und Rauschen statt Oszillator im NOISE-Modus entfernt; der halbierte EQ bleibt.
+Verzerrung und Clap-Hüllkurve sind an diese Stems angepasst.
 
 ## Auf der Force
 
@@ -38,7 +39,7 @@ NOISE-Modus) sind entfernt: Gegen echte Microtonic-Stems (VT-78 In The Air) geme
   der Force. **V1 NOTE** (MASTER-Seite) legt alle acht in einer Reihe neu: C0, C1, **G#1 (Pads 9–16)**, C2, C3.
 - Seite **NOTES**: jede Stimme auf eine **eigene Note** (C-2 bis G8). Liegen zwei Stimmen auf derselben Note,
   spielen beide. Damit passt Drumbox zu einem Force-Clip oder einem Drum-Layout, das andere Noten benutzt.
-- **Velocity** wirkt über die drei VEL-Regler je Stimme (Oszillator, Rauschen, Pitch-Modulation; 0–200 %).
+- **Velocity** wirkt über die drei VEL-Regler je Stimme (Oszillator, Rauschen, Pitch-Modulation; 0–200 %): bei Velocity 127 (Akzent) volle Stärke, darunter um VEL % weniger (wie Microtonic).
 - Jeder Schlag ist ein One-Shot: Note-Offs werden ignoriert.
 - Ein neuer Schlag einer Stimme blendet ihren vorigen in 50 ms aus (wie nb_tonic).
 - **CHOKE 1–3**: Stimmen in derselben Gruppe würgen sich gegenseitig ab (z. B. offene und geschlossene Hi-Hat).
@@ -73,7 +74,8 @@ V8 pink; dieselbe Farbe trägt die Stimmen-Seite), 16 Schritte. Gesetzte Schritt
    PATTERN) verzögert jeden zweiten Schritt um bis zu einen halben Schritt.
 6. **CHAIN ON:** Patterns, die im Preset verkettet sind (Microtonics „Chained“), laufen nacheinander, nach dem
    letzten der Kette wieder das erste. CHAIN OFF: das Pattern wiederholt sich. Jeder Start, Loop oder Sprung der Force beginnt beim
-   gewählten Pattern, nicht bei dem, an dem die Kette beim Stoppen gerade stand.
+   gewählten Pattern, nicht bei dem, an dem die Kette beim Stoppen gerade stand. Beim Stoppen springt die Anzeige
+   zurück auf das gewählte Pattern.
 
 7. **MUTATE** und **UNDO** unten rechts: wie auf der Seite EXPLORE (unten), für das gewählte Pattern, ohne die
    Matrix zu verlassen.
@@ -173,8 +175,8 @@ Pro Stimme, in der Reihenfolge des Signals:
 |---|---|---|
 | **Oszillator** | WAVE (SINE/TRI/SAW), FREQ, ATTACK, DECAY, VEL | Hüllkurve exponentiell; spielt genau auf FREQ (wie Microtonic, ohne Scholls +5 Hz) |
 | **Pitch-Mod** | DECAY / SINE / NOISE, AMOUNT (±96 Halbtöne, volle Wirkung, nicht halbiert wie in nb_tonic), RATE, VEL | DECAY: RATE ist die Abklingzeit (ms, „INF“ = keine), SINE / NOISE: Hz. NOISE moduliert die Tonhöhe mit Zufallswerten; AMOUNT 0 = reiner Ton (wie Microtonic; nb_tonics Ersatz des Oszillators durch Rauschen entfällt) |
-| **Rauschen** | FILTER (LP/BP/HP), FREQ, Q, STEREO, ENVELOPE (EXP/LIN/CLAP), ATTACK, DECAY, VEL | DECAY wie eingestellt (ohne nb_tonics ×1,4), Pegel ohne −9 dB; bei hohem Q blendet das Filter in einen Sinus auf seiner Frequenz über; CLAP: Klatsch-Salven während ATTACK |
-| **Ausgang** | MIX, DIST, EQ FREQ, EQ GAIN, LEVEL, PAN, CHOKE | MIX 100 = nur Oszillator, 0 = nur Rauschen (Microtonic-Konvention). EQ GAIN in Microtonics Skala (±40 dB, volle Wirkung) |
+| **Rauschen** | FILTER (LP/BP/HP), FREQ, Q, STEREO, ENVELOPE (EXP/LIN/CLAP), ATTACK, DECAY, VEL | DECAY wie eingestellt (ohne nb_tonics ×1,4), Pegel ohne −9 dB; bei hohem Q blendet das Filter in einen Sinus auf seiner Frequenz über; CLAP (Microtonics „Mod“): Salven etwa alle 5 ms während ATTACK, danach 60 dB Abfall über DECAY |
+| **Ausgang** | MIX, DIST, EQ FREQ, EQ GAIN, LEVEL, PAN, CHOKE | MIX 100 = nur Oszillator, 0 = nur Rauschen (Microtonic-Konvention). DIST: übersteuerte Stufe (bis +54 dB, leicht asymmetrisch), an Microtonic-Stems angepasst; die Hüllkurven klingen dafür bis −140 dB aus, damit nichts abreißt. EQ GAIN in Microtonics Skala (±40 dB; wirkt mit der Hälfte bei tiefen bis drei Viertel bei hohen Frequenzen). LEVEL über 0 dB klingt wie 0 dB (wie Microtonic) |
 
 **MASTER:** VOLUME, LPF CUTOFF und LPF RESO (Tiefpass auf die Summe, wie nb_tonics globales Filter).
 
@@ -226,7 +228,7 @@ dort, nb_tonics Kits stehen unter MIT (`kits/nb_tonic/LICENSE`).
 - Sequencer ohne Fills und ohne Microtonics Pattern-Mutation; SWING ist eine Näherung (jeder zweite Schritt bis zu
   einem halben Schritt später)
 - Keine getrennten Ausgänge A/B (MPC spielt nur das erste Stereo-Paar eines Plugins)
-- Velocity nach nb_tonics Modell, nicht Microtonics
+- Fills spielt Drumbox nicht (Microtonic spielt sie mit, wenn Fill aktiv ist)
 - Klang nah dran, nicht identisch (siehe oben)
 
 ## Installieren
@@ -271,14 +273,22 @@ hinten anhängen (`mpc/gen.py`).
 (VT-78 In The Air, Stimme für Stimme, Force-Transport bei 95 BPM nachgestellt):
 
 - Ketten: Start, Loop und Sprung der Force beginnen beim gewählten Pattern. Vorher begann die Kette A→B nach dem
-  ersten Stopp mit B, weil der Sequencer die Auswahl auf das laufende Pattern setzte.
-- Stimme: ohne nb_tonics +5 Hz, ohne Rauschen statt Oszillator im NOISE-Modus, MOD AMT und EQ GAIN in voller
-  Stärke, Rausch-Decay ohne ×1,4, Rauschzweig ohne −9 dB, Oszillator linear bis Vollaussteuerung. Ergebnis: Tonhöhen
+  ersten Stopp mit B, weil der Sequencer die Auswahl auf das laufende Pattern setzte. Beim Stoppen (auch SEQ OFF) springt
+  die Auswahl zurück auf das gewählte Pattern.
+- Drumbox Pocket (Browser-Artefakt) hat dieselbe Engine-Korrektur bekommen.
+- Stimme: ohne nb_tonics +5 Hz, ohne Rauschen statt Oszillator im NOISE-Modus, MOD AMT in voller Stärke,
+  Rausch-Decay ohne ×1,4, Rauschzweig ohne −9 dB, Oszillator linear bis Vollaussteuerung. EQ bleibt halbiert
+  (ein zweites Kit, VT-LM2 Like A Record, zeigte das). Neu: Verzerrung als übersteuerte Stufe, Clap-Hüllkurve
+  (Mod) mit Salven alle ~5 ms und 60 dB Abfall – Hi-Hat, Snare, Clap und Conga treffen jetzt die Hüllkurven. Ergebnis: Tonhöhen
   exakt, Conga wieder ein Ton (208 Hz) statt Rauschen, Pegel aller Stimmen auf ±3 dB, Decays von CY und Maracas
   wie in Microtonic.
-- Offen: Microtonics Distortion (asymmetrisch, gerade Obertöne) und die scharfe Hochpass-Resonanz der CY.
-- Die eingebauten Kits werden 1–4 dB lauter; PA Perlike Epithel erreicht die Soft-Grenze am Ausgang (V7: reines
-  Rauschen mit EQ +29,5 dB, wie im Preset).
+- Drittes Kit (VAX Progressive Trance 3): LEVEL über 0 dB wirkt wie 0 dB, Velocity voll bei Akzent und weniger ohne,
+  EQ frequenzabhängig (½ tief bis ¾ hoch) – über alle drei Kits gemessen besser.
+- Offen: die scharfe Hochpass-Resonanz der CY, das späte Einsetzen der LM2-Cowbell, Pegel einiger VAX-Stimmen mit
+  sehr großem EQ-Boost (±7 dB), Microtonics Fills.
+- Lautstärke wie Microtonic (gegen nicht normalisierte Stems von VT-LM2 Like A Record: Summe auf 0,4 dB, jede
+  Stimme auf ±1,7 dB). Die eingebauten Kits sind dadurch deutlich lauter als in 0.4.0 (Spitzen bis 0 dBFS, die
+  Soft-Grenze am Ausgang fängt das ab); bei Bedarf VOLUME auf der MASTER-Seite zurücknehmen.
 
 ### 0.4.0 (2026-10-18)
 

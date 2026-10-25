@@ -3,8 +3,9 @@
  *
  *   pitch mod   decay: Decay.ar(Impulse), 60 dB in 1 / (2 x rate); sine: SinOsc(rate, pi); noise: LFNoise0(4 x rate)
  *               lagged by 1 / (4 x rate); scaled by MOD AMT semitones (not halved as in nb_tonic) and the velocity
- * Checked against Microtonic's own stems (VT-78 In The Air, 2026-10-25): nb_tonic's +5 Hz, MOD AMT / 2, noise decay
- * x 1.4, noise -9 dB, EQ / 2 and the noise replacement in NOISE mode all moved Drumbox away from Microtonic; gone.
+ * Checked against Microtonic's own stems (VT-78 In The Air, VT-LM2 Like A Record, 2026-10-25): nb_tonic's +5 Hz,
+ * MOD AMT / 2, noise decay x 1.4, noise -9 dB and the noise replacement in NOISE mode moved Drumbox away from
+ * Microtonic and are gone; EQ / 2 stays. The distortion and the clap (Mod) envelope are fitted to those stems.
  *   oscillator  sine / triangle / saw (x 0.5) at FREQ + the pitch mod (no +5 Hz offset and no noise replacement in
  *               NOISE mode: measured against Microtonic's own stems, a voice plays at its FREQ, and NOISE mode with
  *               MOD AMT 0 is a clean tone); envelope [0.0001, 1, 0.9, 0.0001] over [attack, decay x decayer, decay],
@@ -14,8 +15,8 @@
  *               exp [0.001, 1, 0.0001], linear [0.0001, 1, 0.9, 0.0001], clap (Decay(Impulse) bursts during the attack,
  *               then exponential); Splay; velocity; softclip (no -9 dB trim)
  *   mix         XFade2 (equal power): MIX 100 % = oscillator only, 0 % = noise only (Microtonic's convention)
- *   end         distortion (dry / softclipped +12..24 dB, then -0..6 dB), peak EQ (EQ GAIN in full), 20 Hz
- *               high-pass, LEVEL - 6 dB,
+ *   end         distortion (tanh driven +0..54 dB along DIST^0.7, a small offset, wet from 10 %, then -0..6 dB), peak EQ
+ *               (EQ GAIN x 1/2 .. 3/4 by its frequency), 20 Hz high-pass, LEVEL (at most 0 dB) - 6 dB,
  *               Balance2 pan
  * A new hit of a voice (or of its choke group) fades the one still sounding out in 50 ms, as nb_tonic's
  * release(0.05). */
@@ -23,7 +24,12 @@
 #include <string.h>
 #include "drumbox.h"
 
-#define OUT_GAIN 0.5f   /* calibration of the whole engine (mpc/render.c measures the built-in kits) */
+/* The envelopes end at -140 dB, not -80 / -60: the distortion lifts up to 54 dB and an end at -60 dB would be heard
+ * as a cut. Their last segment is longer by as much, so it falls exactly as steeply as before: 80 dB per DECAY
+ * (oscillator, noise EXP), 60 dB per DECAY (CLAP). */
+#define K_TAIL_OSC 1.75867879f    /* ln(1e-7 / 0.9) / ln(1e-4 / 0.9) */
+#define K_TAIL_CLAP 2.33333325f   /* 140 / 60 */
+#define OUT_GAIN 0.63f   /* calibration of the whole engine: as loud as Microtonic (VT-LM2 Like A Record, stems not normalized) */
 
 float db_sintab[SIN_N + 1];
 __attribute__((constructor)) static void sintab_init(void) {
@@ -89,8 +95,8 @@ static inline float env_next(env_t *e) {
 
 /* ---- a hit ----------------------------------------------------------------------------------------------------- */
 
-static float velf(float pct, float v) {   /* nb_tonic: vel.range(1 - amount, 1) with vel 0..2 */
-    return fmaxf(0.0f, 1.0f + pct / 100.0f * (v - 0.5f));
+static float velf(float pct, float v) {   /* full at velocity 127 (an accent), softer below by VEL % (as Microtonic) */
+    return fmaxf(0.0f, 1.0f + pct / 100.0f * (v - 1.0f));
 }
 
 void voice_choke(db_t *D, int v) {
@@ -139,7 +145,7 @@ void voice_trigger(db_t *D, int v, float vel) {
     I->f0 = k_freq(p[VP_OSC_FREQ]);
     I->ph = I->wave == W_SAW ? 0.5f : 0.0f;
     {
-        float lv[4] = {0.0001f, 1.0f, 0.9f, 0.0001f}, tm[3] = {oatk, odcy * decayer, odcy};
+        float lv[4] = {0.0001f, 1.0f, 0.9f, 1e-7f}, tm[3] = {oatk, odcy * decayer, odcy * K_TAIL_OSC};
         env_start(&I->eo, lv, tm, 3, 0);
     }
     I->ovel = velf(p[VP_OSC_VEL], vv);
@@ -158,17 +164,17 @@ void voice_trigger(db_t *D, int v, float vel) {
     I->xf_s = sinf(xf * PI_F * 0.5f);
     I->sin_inc = clampf(nf, 0.0f, 0.49f * SR) * INV_SR;
     if (I->nenv == E_EXP) {
-        float lv[3] = {0.001f, 1.0f, 0.0001f}, tm[2] = {natk, ndcy};
+        float lv[3] = {0.001f, 1.0f, 1e-7f}, tm[2] = {natk, ndcy * 1.75f};
         env_start(&I->en, lv, tm, 2, 0);
     } else if (I->nenv == E_LIN) {
-        float lv[4] = {0.0001f, 1.0f, 0.9f, 0.0001f}, tm[3] = {natk, ndcy * decayer, ndcy * (1.0f - decayer)};
+        float lv[4] = {0.0001f, 1.0f, 0.9f, 1e-7f}, tm[3] = {natk, ndcy * decayer, ndcy * (1.0f - decayer)};
         env_start(&I->en, lv, tm, 3, 1);
     } else {
-        float lv[4] = {0.001f, 0.001f, 1.0f, 0.0001f}, tm[3] = {natk, 0.001f, ndcy};
+        float lv[4] = {0.001f, 0.001f, 1.0f, 1e-7f}, tm[3] = {natk, 0.001f, ndcy * K_TAIL_CLAP};   /* Microtonic's Mod: 60 dB per DECAY */
         env_start(&I->en, lv, tm, 3, 0);
         /* the clap: Decay(Impulse(f), 1 / f) x 0.85 + 0.15 while Trig(attack + 1 ms); f from the attack (Scholl's fit,
          * in ms) */
-        float cf = 4311.0f / (natk * 1000.0f + 28.4f) + 11.44f;
+        float cf = 6897.6f / (natk * 1000.0f + 28.4f) + 18.304f;   /* Scholl's fit x 1.6: bursts every ~5 ms as in Microtonic */
         I->clap_period = (int)fmaxf(1.0f, SR / cf);
         I->clap_left = 0;
         I->clap_count = (int)((natk + 0.001f) * SR);
@@ -182,18 +188,27 @@ void voice_trigger(db_t *D, int v, float vel) {
     I->g_osc = cosf((pan + 1.0f) * PI_F * 0.25f);
     I->g_noise = sinf((pan + 1.0f) * PI_F * 0.25f);
     I->dist = dist;
-    I->dist_pre = dbamp(12.0f + 12.0f * dist);
+    I->dist_pre = dbamp(54.0f * powf(dist, 0.7f));   /* the drive: +0 .. +54 dB (fitted to Microtonic's stems) */
     I->dist_post = dbamp(-6.0f * dist);
-    float eqg = k_eqgain(p[VP_EQ_GAIN]);   /* Microtonic's dB as they are (Scholl halved them; Microtonic's stems say no) */
+    /* half the gain at 20 Hz (as Scholl measured) up to 3/4 at 20 kHz: fitted to three kits of Microtonic stems */
+    float eqg = k_eqgain(p[VP_EQ_GAIN]) * (0.5f + 0.25f * (clampf(p[VP_EQ_FREQ], 0, 100) / 100.0f));
     bq_peak(&I->eq, k_freq(p[VP_EQ_FREQ]), 1.0f, eqg);
     I->use_osc = I->g_osc > 1e-5f;
     I->use_noise = I->g_noise > 1e-5f;
     I->use_eq = fabsf(eqg) > 0.01f;
     bq_hp(&I->hp, 20.0f, 1.41421356f);
-    float lvl = p[VP_LEVEL] <= 0.0f ? 0.0f : dbamp(k_db(p[VP_LEVEL])) * 0.5f * OUT_GAIN;
+    /* LEVEL above 0 dB plays as 0 dB: so Microtonic's stems sound (three kits) */
+    float lvl = p[VP_LEVEL] <= 0.0f ? 0.0f : dbamp(fminf(k_db(p[VP_LEVEL]), 0.0f)) * 0.5f * OUT_GAIN;
     float pp = clampf(p[VP_PAN] / 100.0f, -1.0f, 1.0f);
     I->gl = lvl * cosf((pp + 1.0f) * PI_F * 0.25f);
     I->gr = lvl * sinf((pp + 1.0f) * PI_F * 0.25f);
+}
+
+static inline float ftanh(float x) {   /* tanh, rational (Lambert): within 2 %, exactly +-1 beyond +-3 */
+    if (x > 3.0f) return 1.0f;
+    if (x < -3.0f) return -1.0f;
+    float x2 = x * x;
+    return x * (27.0f + x2) / (27.0f + 9.0f * x2);
 }
 
 /* ---- render ---------------------------------------------------------------------------------------------------- */
@@ -267,9 +282,11 @@ static int inst_render(inst_t *I, float *L, float *R, int n) {
 
         /* mix, distortion, EQ, high-pass, level and pan */
         float sl = o * I->g_osc + nl * I->g_noise, sr = o * I->g_osc + nr * I->g_noise;
-        if (I->dist > 0.0f) {
-            sl = (sl * (1.0f - I->dist) + softclip(sl * I->dist_pre) * I->dist) * I->dist_post;
-            sr = (sr * (1.0f - I->dist) + softclip(sr * I->dist_pre) * I->dist) * I->dist_post;
+        if (I->dist > 0.0f) {   /* driven tanh, a little asymmetric (even harmonics), wet from 10 % on */
+            float b = 0.5f * I->dist, w = fminf(1.0f, I->dist * 10.0f), tb = ftanh(b);
+            float yl = ftanh(sl * I->dist_pre + b) - tb, yr = ftanh(sr * I->dist_pre + b) - tb;
+            sl = (sl * (1.0f - w) + yl * w) * I->dist_post;
+            sr = (sr * (1.0f - w) + yr * w) * I->dist_post;
         }
         if (I->use_eq) {
             sl = bq_run(&I->eq, &I->eqs[0], sl);
