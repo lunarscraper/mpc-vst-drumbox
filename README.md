@@ -176,7 +176,7 @@ Pro Stimme, in der Reihenfolge des Signals:
 | **Oszillator** | WAVE (SINE/TRI/SAW), FREQ, ATTACK, DECAY, VEL | Hüllkurve exponentiell; spielt genau auf FREQ (wie Microtonic, ohne Scholls +5 Hz) |
 | **Pitch-Mod** | DECAY / SINE / NOISE, AMOUNT (±96 Halbtöne, volle Wirkung, nicht halbiert wie in nb_tonic), RATE, VEL | DECAY: RATE ist die Abklingzeit (ms, „INF“ = keine), SINE / NOISE: Hz. NOISE moduliert die Tonhöhe mit Zufallswerten; AMOUNT 0 = reiner Ton (wie Microtonic; nb_tonics Ersatz des Oszillators durch Rauschen entfällt) |
 | **Rauschen** | FILTER (LP/BP/HP), FREQ, Q, STEREO, ENVELOPE (EXP/LIN/CLAP), ATTACK, DECAY, VEL | DECAY wie eingestellt (ohne nb_tonics ×1,4), Pegel ohne −9 dB; bei hohem Q blendet das Filter in einen Sinus auf seiner Frequenz über; CLAP (Microtonics „Mod“): Salven etwa alle 5 ms während ATTACK, danach 60 dB Abfall über DECAY |
-| **Ausgang** | MIX, DIST, EQ FREQ, EQ GAIN, LEVEL, PAN, CHOKE | MIX 100 = nur Oszillator, 0 = nur Rauschen (Microtonic-Konvention). DIST: übersteuerte Stufe (bis +54 dB, leicht asymmetrisch), an Microtonic-Stems angepasst; die Hüllkurven klingen dafür bis −140 dB aus, damit nichts abreißt. EQ GAIN in Microtonics Skala (±40 dB; wirkt mit der Hälfte bei tiefen bis drei Viertel bei hohen Frequenzen). LEVEL über 0 dB klingt wie 0 dB (wie Microtonic) |
+| **Ausgang** | MIX, DIST, EQ FREQ, EQ GAIN, LEVEL, PAN, CHOKE | MIX 100 = nur Oszillator, 0 = nur Rauschen (Microtonic-Konvention), Anteile m^1,5 und (1−m)^1,5. DIST: übersteuerte Stufe (bis +54 dB, leicht asymmetrisch), verzerrter Anteil = DIST, an Microtonic-Stems angepasst; die Hüllkurven klingen dafür bis −140 dB aus, damit nichts abreißt. EQ GAIN in Microtonics Skala (±40 dB; wirkt mit der Hälfte bei tiefen bis drei Viertel bei hohen Frequenzen). LEVEL über 0 dB klingt wie 0 dB (wie Microtonic) |
 
 **MASTER:** VOLUME, LPF CUTOFF und LPF RESO (Tiefpass auf die Summe, wie nb_tonics globales Filter).
 
@@ -284,8 +284,11 @@ hinten anhängen (`mpc/gen.py`).
   wie in Microtonic.
 - Drittes Kit (VAX Progressive Trance 3): LEVEL über 0 dB wirkt wie 0 dB, Velocity voll bei Akzent und weniger ohne,
   EQ frequenzabhängig (½ tief bis ¾ hoch) – über alle drei Kits gemessen besser.
-- Offen: die scharfe Hochpass-Resonanz der CY, das späte Einsetzen der LM2-Cowbell, Pegel einiger VAX-Stimmen mit
-  sehr großem EQ-Boost (±7 dB), Microtonics Fills.
+- Viertes Kit (VT-MRK Disco, Stems nicht normalisiert): MIX-Anteile m^1,5 / (1−m)^1,5 statt Leistungs-Überblendung
+  (ein kleiner Rauschanteil war viel zu laut), verzerrter Anteil = DIST statt voll ab 10 %. Über vier Kits
+  Abweichung 281 → 235, mittlerer Pegelfehler 3,4 dB, größter 8,5 dB (vorher 14,7 dB).
+- Offen: die scharfe Hochpass-Resonanz der CY, das späte Einsetzen der LM2-Cowbell, Pegel einiger Stimmen mit
+  sehr großem EQ-Boost (bis ±8 dB), Microtonics Fills.
 - Lautstärke wie Microtonic (gegen nicht normalisierte Stems von VT-LM2 Like A Record: Summe auf 0,4 dB, jede
   Stimme auf ±1,7 dB). Die eingebauten Kits sind dadurch deutlich lauter als in 0.4.0 (Spitzen bis 0 dBFS, die
   Soft-Grenze am Ausgang fängt das ab); bei Bedarf VOLUME auf der MASTER-Seite zurücknehmen.

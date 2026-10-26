@@ -14,8 +14,8 @@
  *               at high Q it fades to a sine at the filter's frequency; envelopes (decay as set, not x 1.4):
  *               exp [0.001, 1, 0.0001], linear [0.0001, 1, 0.9, 0.0001], clap (Decay(Impulse) bursts during the attack,
  *               then exponential); Splay; velocity; softclip (no -9 dB trim)
- *   mix         XFade2 (equal power): MIX 100 % = oscillator only, 0 % = noise only (Microtonic's convention)
- *   end         distortion (tanh driven +0..54 dB along DIST^0.7, a small offset, wet from 10 %, then -0..6 dB), peak EQ
+ *   mix         MIX 100 % = oscillator only, 0 % = noise only (Microtonic's convention), m^1.5 / (1 - m)^1.5
+ *   end         distortion (tanh driven +0..54 dB along DIST^0.7, a small offset, DIST wet, then -0..6 dB), peak EQ
  *               (EQ GAIN x 1/2 .. 3/4 by its frequency), 20 Hz high-pass, LEVEL (at most 0 dB) - 6 dB,
  *               Balance2 pan
  * A new hit of a voice (or of its choke group) fades the one still sounding out in 50 ms, as nb_tonic's
@@ -29,7 +29,7 @@
  * (oscillator, noise EXP), 60 dB per DECAY (CLAP). */
 #define K_TAIL_OSC 1.75867879f    /* ln(1e-7 / 0.9) / ln(1e-4 / 0.9) */
 #define K_TAIL_CLAP 2.33333325f   /* 140 / 60 */
-#define OUT_GAIN 0.63f   /* calibration of the whole engine: as loud as Microtonic (VT-LM2 Like A Record, stems not normalized) */
+#define OUT_GAIN 1.2f   /* calibration of the whole engine: as loud as Microtonic (LM2, VAX, MRK stems, not normalized) */
 
 float db_sintab[SIN_N + 1];
 __attribute__((constructor)) static void sintab_init(void) {
@@ -184,9 +184,11 @@ void voice_trigger(db_t *D, int v, float vel) {
     I->nvel = velf(p[VP_N_VEL], vv);
 
     /* mix and the end */
-    float pan = 1.0f - 2.0f * p[VP_MIX] / 100.0f;
-    I->g_osc = cosf((pan + 1.0f) * PI_F * 0.25f);
-    I->g_noise = sinf((pan + 1.0f) * PI_F * 0.25f);
+    /* MIX: oscillator m^1.5, noise (1 - m)^1.5 (fitted to four kits of Microtonic stems; nb_tonic's equal-power
+     * crossfade let a little noise come through far too loud) */
+    float mixm = p[VP_MIX] / 100.0f;
+    I->g_osc = powf(mixm, 1.5f);
+    I->g_noise = powf(1.0f - mixm, 1.5f);
     I->dist = dist;
     I->dist_pre = dbamp(54.0f * powf(dist, 0.7f));   /* the drive: +0 .. +54 dB (fitted to Microtonic's stems) */
     I->dist_post = dbamp(-6.0f * dist);
@@ -283,7 +285,7 @@ static int inst_render(inst_t *I, float *L, float *R, int n) {
         /* mix, distortion, EQ, high-pass, level and pan */
         float sl = o * I->g_osc + nl * I->g_noise, sr = o * I->g_osc + nr * I->g_noise;
         if (I->dist > 0.0f) {   /* driven tanh, a little asymmetric (even harmonics), wet from 10 % on */
-            float b = 0.5f * I->dist, w = fminf(1.0f, I->dist * 10.0f), tb = ftanh(b);
+            float b = 0.5f * I->dist, w = I->dist, tb = ftanh(b);   /* wet as much as DIST says */
             float yl = ftanh(sl * I->dist_pre + b) - tb, yr = ftanh(sr * I->dist_pre + b) - tb;
             sl = (sl * (1.0f - w) + yl * w) * I->dist_post;
             sr = (sr * (1.0f - w) + yr * w) * I->dist_post;
